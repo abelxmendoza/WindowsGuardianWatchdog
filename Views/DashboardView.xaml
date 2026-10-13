@@ -1,89 +1,45 @@
-<Page x:Class="WindowsGuardianWatchdog.Views.DashboardView"
-      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
-        <StackPanel Padding="20" Spacing="20" Background="{StaticResource BackgroundBlackBrush}">
-            <!-- Logo Header -->
-            <StackPanel Orientation="Horizontal" Spacing="20" Margin="0,0,0,20">
-                <Image Source="ms-appx:///Resources/Logo.png" 
-                       Width="120" Height="120" 
-                       Stretch="Uniform"/>
-                <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="WINDOWSGUARDIAN" 
-                               FontSize="36" FontWeight="Bold" 
-                               Foreground="{StaticResource PrimaryPurpleBrush}"/>
-                    <TextBlock Text="WATCHDOG" 
-                               FontSize="28" FontWeight="SemiBold" 
-                               Foreground="{StaticResource AccentCyanBrush}" Margin="0,-10,0,0"/>
-                    <TextBlock Text="Enterprise-Grade Security for Windows" 
-                               FontSize="14" 
-                               Foreground="{StaticResource TextGrayBrush}" 
-                               Margin="0,10,0,0"/>
-                </StackPanel>
-            </StackPanel>
-            
-            <TextBlock Text="Dashboard" FontSize="32" FontWeight="Bold" Foreground="{StaticResource PrimaryPurpleBrush}"/>
-            
-            <!-- Status Cards -->
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                
-                <Border Grid.Column="0" Margin="5" Padding="15" Background="{StaticResource BackgroundCardBrush}" CornerRadius="8" BorderBrush="{StaticResource ThemePurpleDarkBrush}" BorderThickness="1">
-                    <StackPanel>
-                        <TextBlock Text="Security Status" FontSize="14" Foreground="{StaticResource TextGrayBrush}"/>
-                        <TextBlock x:Name="SecurityStatusText" Text="Checking..." FontSize="24" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" Margin="0,5,0,0"/>
-                    </StackPanel>
-                </Border>
-                
-                <Border Grid.Column="1" Margin="5" Padding="15" Background="{StaticResource BackgroundCardBrush}" CornerRadius="8" BorderBrush="{StaticResource SecondaryRedBrush}" BorderThickness="1">
-                    <StackPanel>
-                        <TextBlock Text="Active Threats" FontSize="14" Foreground="{StaticResource TextGrayBrush}"/>
-                        <TextBlock x:Name="ThreatsCountText" Text="0" FontSize="24" FontWeight="Bold" Foreground="{StaticResource SecondaryRedBrush}" Margin="0,5,0,0"/>
-                    </StackPanel>
-                </Border>
-                
-                <Border Grid.Column="2" Margin="5" Padding="15" Background="{StaticResource BackgroundCardBrush}" CornerRadius="8" BorderBrush="{StaticResource ThemePurpleDarkBrush}" BorderThickness="1">
-                    <StackPanel>
-                        <TextBlock Text="Files Monitored" FontSize="14" Foreground="{StaticResource TextGrayBrush}"/>
-                        <TextBlock x:Name="FilesMonitoredText" Text="0" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryPurpleBrush}" Margin="0,5,0,0"/>
-                    </StackPanel>
-                </Border>
-                
-                <Border Grid.Column="3" Margin="5" Padding="15" Background="{StaticResource BackgroundCardBrush}" CornerRadius="8" BorderBrush="{StaticResource SecondaryRedBrush}" BorderThickness="1">
-                    <StackPanel>
-                        <TextBlock Text="Alerts" FontSize="14" Foreground="{StaticResource TextGrayBrush}"/>
-                        <TextBlock x:Name="AlertsCountText" Text="0" FontSize="24" FontWeight="Bold" Foreground="{StaticResource SecondaryRedBrush}" Margin="0,5,0,0"/>
-                    </StackPanel>
-                </Border>
-            </Grid>
-
-            <!-- Quick Actions -->
-            <TextBlock Text="Quick Actions" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,10,0,0"/>
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <Button x:Name="StartMonitoringButton" Content="Start Monitoring" Click="StartMonitoringButton_Click" Style="{StaticResource AccentButtonStyle}"/>
-                <Button x:Name="RunAuditButton" Content="Run Security Audit" Click="RunAuditButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
-                <Button x:Name="ThreatHuntButton" Content="Threat Hunt" Click="ThreatHuntButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
-                <Button x:Name="ViewAlertsButton" Content="View Alerts" Click="ViewAlertsButton_Click" Style="{StaticResource DangerButtonStyle}"/>
-            </StackPanel>
-
-            <!-- Recent Activity -->
-            <TextBlock Text="Recent Activity" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,10,0,0"/>
-            <ListView x:Name="ActivityListView" Height="300" Background="{StaticResource BackgroundNoiseBrush}" Foreground="{StaticResource TextPrimaryBrush}">
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal" Padding="10" Background="{StaticResource BackgroundCardBrush}" Margin="0,2,0,2">
-                            <TextBlock Text="{Binding Timestamp}" Width="150" FontFamily="Consolas" Foreground="{StaticResource AccentCyanBrush}"/>
-                            <TextBlock Text="{Binding Message}" Margin="10,0,0,0" Foreground="{StaticResource TextPrimaryBrush}"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
-        </StackPanel>
-    </ScrollViewer>
+<Page x:Class="WindowsGuardianWatchdog.Views.DashboardView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
+    <StackPanel Padding="32" Spacing="24" MaxWidth="1500">
+      <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <StackPanel><TextBlock Text="Security Dashboard" Style="{StaticResource PageTitleTextStyle}"/><TextBlock Text="Live protection, posture, and system health for this Windows PC" Style="{StaticResource BodyTextStyle}" Margin="0,6,0,0"/></StackPanel>
+        <Button Grid.Column="1" Content="Refresh status" Click="RefreshButton_Click" Style="{StaticResource SecondaryButtonStyle}" VerticalAlignment="Center"/>
+      </Grid>
+      <Border Style="{StaticResource HeroCardStyle}">
+        <Grid ColumnSpacing="24">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <Border Width="76" Height="76" CornerRadius="38" Background="#182D27"><FontIcon x:Name="PostureIcon" Glyph="&#xE83D;" FontSize="36" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4"><TextBlock Text="SECURITY POSTURE" Style="{StaticResource EyebrowTextStyle}"/><TextBlock x:Name="SecurityStatusText" Text="Checking this PC…" FontSize="27" FontWeight="SemiBold"/><TextBlock x:Name="SecuritySummaryText" Text="Reading Microsoft Defender and system health" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/></StackPanel>
+          <StackPanel Grid.Column="2" VerticalAlignment="Center"><TextBlock x:Name="SecurityScoreText" Text="—" FontSize="46" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" HorizontalAlignment="Right"/><TextBlock Text="POSTURE SCORE" Style="{StaticResource EyebrowTextStyle}"/></StackPanel>
+        </Grid>
+      </Border>
+      <Grid ColumnSpacing="14">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <Border Grid.Column="0" Style="{StaticResource MetricCardStyle}"><StackPanel Spacing="8"><FontIcon Glyph="&#xE72E;" Foreground="{StaticResource AccentCyanBrush}" HorizontalAlignment="Left"/><TextBlock Text="Microsoft Defender" Style="{StaticResource MetricLabelStyle}"/><TextBlock x:Name="DefenderStatusText" Text="Checking…" Style="{StaticResource MetricValueStyle}"/></StackPanel></Border>
+        <Border Grid.Column="1" Style="{StaticResource MetricCardStyle}"><StackPanel Spacing="8"><FontIcon Glyph="&#xE950;" Foreground="{StaticResource PrimaryPurpleBrush}" HorizontalAlignment="Left"/><TextBlock Text="Live monitoring" Style="{StaticResource MetricLabelStyle}"/><TextBlock x:Name="MonitorStatusText" Text="Stopped" Style="{StaticResource MetricValueStyle}"/></StackPanel></Border>
+        <Border Grid.Column="2" Style="{StaticResource MetricCardStyle}"><StackPanel Spacing="8"><FontIcon Glyph="&#xE7F8;" Foreground="{StaticResource WarningBrush}" HorizontalAlignment="Left"/><TextBlock Text="System health" Style="{StaticResource MetricLabelStyle}"/><TextBlock x:Name="SystemHealthText" Text="Checking…" Style="{StaticResource MetricValueStyle}"/></StackPanel></Border>
+        <Border Grid.Column="3" Style="{StaticResource MetricCardStyle}"><StackPanel Spacing="8"><FontIcon Glyph="&#xE7BA;" Foreground="{StaticResource DangerBrush}" HorizontalAlignment="Left"/><TextBlock Text="Session findings" Style="{StaticResource MetricLabelStyle}"/><TextBlock x:Name="AlertsCountText" Text="0" Style="{StaticResource MetricValueStyle}"/></StackPanel></Border>
+      </Grid>
+      <Grid ColumnSpacing="18">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="1.15*"/><ColumnDefinition Width="0.85*"/></Grid.ColumnDefinitions>
+        <Border Style="{StaticResource SectionCardStyle}">
+          <StackPanel Spacing="16">
+            <StackPanel><TextBlock Text="Quick actions" Style="{StaticResource SectionTitleTextStyle}"/><TextBlock Text="Safe, Windows-native security operations" Style="{StaticResource BodyTextStyle}"/></StackPanel>
+            <Button x:Name="StartMonitoringButton" Click="StartMonitoringButton_Click" Style="{StaticResource ActionRowButtonStyle}"><Grid ColumnSpacing="14"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><FontIcon Glyph="&#xE768;" Foreground="{StaticResource AccentCyanBrush}"/><StackPanel Grid.Column="1"><TextBlock Text="Start live monitoring" FontWeight="SemiBold"/><TextBlock Text="Watch processes and system integrity" Style="{StaticResource BodyTextStyle}"/></StackPanel><FontIcon Grid.Column="2" Glyph="&#xE76C;"/></Grid></Button>
+            <Button Click="RunAuditButton_Click" Style="{StaticResource ActionRowButtonStyle}"><Grid ColumnSpacing="14"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><FontIcon Glyph="&#xE9D5;" Foreground="{StaticResource PrimaryPurpleBrush}"/><StackPanel Grid.Column="1"><TextBlock Text="Run security audit" FontWeight="SemiBold"/><TextBlock Text="Score Windows security controls" Style="{StaticResource BodyTextStyle}"/></StackPanel><FontIcon Grid.Column="2" Glyph="&#xE76C;"/></Grid></Button>
+            <Button Click="ThreatHuntButton_Click" Style="{StaticResource ActionRowButtonStyle}"><Grid ColumnSpacing="14"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><FontIcon Glyph="&#xE721;" Foreground="{StaticResource WarningBrush}"/><StackPanel Grid.Column="1"><TextBlock Text="Threat hunt" FontWeight="SemiBold"/><TextBlock Text="Inspect processes, persistence, and network activity" Style="{StaticResource BodyTextStyle}"/></StackPanel><FontIcon Grid.Column="2" Glyph="&#xE76C;"/></Grid></Button>
+            <TextBlock x:Name="OperationStatusText" Text="Ready" Foreground="{StaticResource TextSecondaryBrush}"/><ProgressBar x:Name="OperationProgress" IsIndeterminate="True" Visibility="Collapsed"/>
+          </StackPanel>
+        </Border>
+        <Border Grid.Column="1" Style="{StaticResource SectionCardStyle}">
+          <Grid RowSpacing="14"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+            <Grid><TextBlock Text="Recent activity" Style="{StaticResource SectionTitleTextStyle}"/><Button Content="View alerts" Click="ViewAlertsButton_Click" HorizontalAlignment="Right" Style="{StaticResource TextButtonStyle}"/></Grid>
+            <ListView Grid.Row="1" x:Name="ActivityListView" MinHeight="330" Background="Transparent" SelectionMode="None"><ListView.ItemTemplate><DataTemplate><Grid Padding="4,9" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="72"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><TextBlock Text="{Binding Timestamp}" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource TextTertiaryBrush}"/><StackPanel Grid.Column="1"><TextBlock Text="{Binding Message}" TextWrapping="Wrap"/><TextBlock Text="{Binding Type}" Style="{StaticResource EyebrowTextStyle}" Margin="0,3,0,0"/></StackPanel></Grid></DataTemplate></ListView.ItemTemplate></ListView>
+          </Grid>
+        </Border>
+      </Grid>
+      <InfoBar IsOpen="True" IsClosable="False" Severity="Informational" Title="Privacy first" Message="Security data stays on this PC. Changes use preview or dry-run modes where supported."/>
+    </StackPanel>
+  </ScrollViewer>
 </Page>
-

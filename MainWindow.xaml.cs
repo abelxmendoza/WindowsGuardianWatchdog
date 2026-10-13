@@ -1,62 +1,90 @@
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using WindowsGuardianWatchdog.Views;
 using System;
+using System.Collections.Generic;
 using System.IO;
-using Microsoft.UI.Windowing;
+using WindowsGuardianWatchdog.Views;
 using WinRT.Interop;
 
 namespace WindowsGuardianWatchdog
 {
     public sealed partial class MainWindow : Window
     {
-        private Frame _contentFrame;
+        private readonly Frame _contentFrame = new();
+        private readonly NavigationView _navigation = new();
+        private readonly Dictionary<string, Type> _routes = new()
+        {
+            ["Dashboard"] = typeof(DashboardView), ["SecurityOverview"] = typeof(SecurityOverviewView),
+            ["SecurityMonitor"] = typeof(SecurityMonitorView), ["FileIntegrity"] = typeof(FileIntegrityView),
+            ["ThreatDetection"] = typeof(ThreatDetectionView), ["SecurityAudit"] = typeof(SecurityAuditView),
+            ["Remediation"] = typeof(RemediationView), ["Hardening"] = typeof(HardeningView),
+            ["Cleanup"] = typeof(CleanupView), ["Drivers"] = typeof(DriversView),
+            ["Startup"] = typeof(StartupView), ["MLInsights"] = typeof(MLInsightsView),
+            ["Alerts"] = typeof(AlertsView), ["Settings"] = typeof(SettingsView)
+        };
 
         public MainWindow()
         {
-            // Build UI in code instead of relying on XAML code-gen
-            this.Title = "Windows Guardian Watchdog";
-
-            var navView = new NavigationView
-            {
-                PaneDisplayMode = NavigationViewPaneDisplayMode.Left,
-                IsBackButtonVisible = NavigationViewBackButtonVisible.Collapsed,
-                IsSettingsVisible = false
-            };
-
-            // Create Frame for page navigation
-            _contentFrame = new Frame();
-            navView.Content = _contentFrame;
-
-            // Menu items
-            void Add(string content, string tag)
-            {
-                navView.MenuItems.Add(new NavigationViewItem { Content = content, Tag = tag });
-            }
-
-            Add("Dashboard", "Dashboard");
-            Add("Security Overview", "SecurityOverview");
-            Add("Security Monitor", "SecurityMonitor");
-            Add("File Integrity", "FileIntegrity");
-            Add("Threat Detection", "ThreatDetection");
-            Add("Security Audit", "SecurityAudit");
-            Add("Remediation", "Remediation");
-            Add("System Cleanup", "Cleanup");
-            Add("Drivers", "Drivers");
-            Add("Startup Manager", "Startup");
-            Add("Security Hardening", "Hardening");
-            Add("ML Insights", "MLInsights");
-            Add("Alerts", "Alerts");
-
-            navView.SelectionChanged += NavView_SelectionChanged;
-
-            // Set initial page
-            _contentFrame.Navigate(typeof(DashboardView));
-
-            // Set window content
-            this.Content = navView;
-
+            Title = "Windows Guardian Watchdog";
+            BuildShell();
             ConfigureWindowsShell();
+        }
+
+        private void BuildShell()
+        {
+            _navigation.PaneDisplayMode = NavigationViewPaneDisplayMode.Auto;
+            _navigation.IsBackButtonVisible = NavigationViewBackButtonVisible.Collapsed;
+            _navigation.IsSettingsVisible = true;
+            _navigation.IsPaneToggleButtonVisible = true;
+            _navigation.OpenPaneLength = 280;
+            _navigation.CompactPaneLength = 52;
+            _navigation.PaneTitle = "WINDOWS GUARDIAN";
+            _navigation.Content = _contentFrame;
+            _navigation.SelectionChanged += Navigation_SelectionChanged;
+
+            var dashboard = AddItem("Dashboard", "Dashboard", Symbol.Home);
+            AddHeader("MONITOR");
+            AddItem("Security overview", "SecurityOverview", Symbol.View);
+            AddItem("Live monitor", "SecurityMonitor", Symbol.Play);
+            AddItem("File integrity", "FileIntegrity", Symbol.Document);
+            AddItem("Alerts & incidents", "Alerts", Symbol.Important);
+            AddHeader("INVESTIGATE");
+            AddItem("Threat detection", "ThreatDetection", Symbol.Find);
+            AddItem("Security audit", "SecurityAudit", Symbol.AllApps);
+            AddItem("ML insights", "MLInsights", Symbol.OutlineStar);
+            AddHeader("PROTECT");
+            AddItem("Remediation center", "Remediation", Symbol.Repair);
+            AddItem("Security hardening", "Hardening", Symbol.Permissions);
+            AddHeader("MAINTAIN");
+            AddItem("System cleanup", "Cleanup", Symbol.Delete);
+            AddItem("Driver manager", "Drivers", Symbol.Download);
+            AddItem("Startup manager", "Startup", Symbol.Setting);
+
+            _navigation.SelectedItem = dashboard;
+            Content = _navigation;
+            Navigate("Dashboard");
+        }
+
+        private NavigationViewItem AddItem(string label, string tag, Symbol symbol)
+        {
+            var item = new NavigationViewItem { Content = label, Tag = tag, Icon = new SymbolIcon(symbol) };
+            _navigation.MenuItems.Add(item);
+            return item;
+        }
+
+        private void AddHeader(string label) => _navigation.MenuItems.Add(new NavigationViewItemHeader { Content = label });
+
+        private void Navigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+        {
+            if (args.IsSettingsSelected) { Navigate("Settings"); return; }
+            if (args.SelectedItem is NavigationViewItem item && item.Tag is string route) Navigate(route);
+        }
+
+        private void Navigate(string route)
+        {
+            if (_routes.TryGetValue(route, out var pageType) && _contentFrame.CurrentSourcePageType != pageType)
+                _contentFrame.Navigate(pageType);
         }
 
         private void ConfigureWindowsShell()
@@ -64,45 +92,13 @@ namespace WindowsGuardianWatchdog
             var windowHandle = WindowNative.GetWindowHandle(this);
             var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(windowHandle);
             var appWindow = AppWindow.GetFromWindowId(windowId);
-
             var iconPath = Path.Combine(AppContext.BaseDirectory, "Resources", "Logo.ico");
-            if (File.Exists(iconPath))
-            {
-                appWindow.SetIcon(iconPath);
-            }
-
-            appWindow.Resize(new Windows.Graphics.SizeInt32(1280, 800));
+            if (File.Exists(iconPath)) appWindow.SetIcon(iconPath);
+            appWindow.Resize(new Windows.Graphics.SizeInt32(1440, 900));
             if (appWindow.Presenter is OverlappedPresenter presenter)
             {
-                presenter.PreferredMinimumWidth = 900;
-                presenter.PreferredMinimumHeight = 600;
-            }
-        }
-
-        private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
-        {
-            if (args.SelectedItem is NavigationViewItem item)
-            {
-                var tag = item.Tag?.ToString();
-                var pageType = tag switch
-                {
-                    "Dashboard" => typeof(DashboardView),
-                    "SecurityOverview" => typeof(SecurityOverviewView),
-                    "SecurityMonitor" => typeof(SecurityMonitorView),
-                    "FileIntegrity" => typeof(FileIntegrityView),
-                    "ThreatDetection" => typeof(ThreatDetectionView),
-                    "SecurityAudit" => typeof(SecurityAuditView),
-                    "Remediation" => typeof(RemediationView),
-                    "Alerts" => typeof(AlertsView),
-                    "Cleanup" => typeof(CleanupView),
-                    "Drivers" => typeof(DriversView),
-                    "Startup" => typeof(StartupView),
-                    "Hardening" => typeof(HardeningView),
-                    "MLInsights" => typeof(MLInsightsView),
-                    _ => typeof(DashboardView)
-                };
-
-                _contentFrame.Navigate(pageType);
+                presenter.PreferredMinimumWidth = 960;
+                presenter.PreferredMinimumHeight = 640;
             }
         }
     }

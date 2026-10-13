@@ -15,6 +15,13 @@
     <SolidColorBrush x:Key="ThemePurpleBrush" Color="#8C00FF"/>
     <SolidColorBrush x:Key="ThemePurpleDarkBrush" Color="#5900A6"/>
     <SolidColorBrush x:Key="ThemePurpleLightBrush" Color="#B333FF"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#111318"/>
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#181B22"/>
+    <SolidColorBrush x:Key="SurfaceBorderBrush" Color="#2A2E38"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="#42D392"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#F4B942"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#FF5D73"/>
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="#6F7685"/>
     
     <!-- Button Styles -->
     <Style x:Key="PrimaryButtonStyle" TargetType="Button">
@@ -110,6 +117,50 @@
     <Style x:Key="CyanProgressBarStyle" TargetType="ProgressBar">
         <Setter Property="Foreground" Value="{StaticResource AccentCyanBrush}"/>
         <Setter Property="Background" Value="{StaticResource BackgroundCardBrush}"/>
+    </Style>
+
+    <Style x:Key="PageTitleTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="34"/><Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+    </Style>
+    <Style x:Key="SectionTitleTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="20"/><Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+    </Style>
+    <Style x:Key="EyebrowTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11"/><Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="CharacterSpacing" Value="80"/><Setter Property="Foreground" Value="{StaticResource TextTertiaryBrush}"/>
+    </Style>
+    <Style x:Key="MetricLabelStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/><Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+    </Style>
+    <Style x:Key="MetricValueStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="20"/><Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/><Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
+    <Style x:Key="HeroCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="#151922"/><Setter Property="BorderBrush" Value="#303746"/>
+        <Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="14"/><Setter Property="Padding" Value="24"/>
+    </Style>
+    <Style x:Key="MetricCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/><Setter Property="BorderBrush" Value="{StaticResource SurfaceBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="12"/><Setter Property="Padding" Value="18"/>
+    </Style>
+    <Style x:Key="SectionCardStyle" TargetType="Border" BasedOn="{StaticResource MetricCardStyle}">
+        <Setter Property="Padding" Value="22"/>
+    </Style>
+    <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource SurfaceRaisedBrush}"/><Setter Property="BorderBrush" Value="{StaticResource SurfaceBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="7"/><Setter Property="Padding" Value="16,9"/>
+    </Style>
+    <Style x:Key="ActionRowButtonStyle" TargetType="Button">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Background" Value="#151820"/>
+        <Setter Property="BorderBrush" Value="{StaticResource SurfaceBorderBrush}"/><Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="9"/><Setter Property="Padding" Value="15,13"/>
+    </Style>
+    <Style x:Key="TextButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{StaticResource AccentCyanBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="8,4"/>
     </Style>
     
 </ResourceDictionary>
