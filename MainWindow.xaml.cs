@@ -1,6 +1,8 @@
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -39,7 +41,15 @@ namespace WindowsGuardianWatchdog
             _navigation.IsPaneToggleButtonVisible = true;
             _navigation.OpenPaneLength = 280;
             _navigation.CompactPaneLength = 52;
-            _navigation.PaneTitle = "WINDOWS GUARDIAN";
+            _navigation.PaneHeader = CreatePaneHeader();
+            _navigation.PaneFooter = new TextBlock
+            {
+                Text = "WATCHDOG  •  WINDOWS PROTECTION",
+                FontSize = 10,
+                CharacterSpacing = 70,
+                Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 71, 191, 255)),
+                Margin = new Thickness(12, 8, 8, 14)
+            };
             _navigation.Content = _contentFrame;
             _navigation.SelectionChanged += Navigation_SelectionChanged;
 
@@ -74,6 +84,29 @@ namespace WindowsGuardianWatchdog
         }
 
         private void AddHeader(string label) => _navigation.MenuItems.Add(new NavigationViewItemHeader { Content = label });
+
+        private static UIElement CreatePaneHeader()
+        {
+            var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Margin = new Thickness(4, 8, 4, 12) };
+            header.Children.Add(new Image
+            {
+                Source = new BitmapImage(new Uri("ms-appx:///Resources/LogoMark.png")),
+                Width = 46,
+                Height = 46,
+                Stretch = Stretch.UniformToFill
+            });
+            var labels = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            labels.Children.Add(new TextBlock { Text = "WINDOWS GUARDIAN", FontWeight = Microsoft.UI.Text.FontWeights.Bold, FontSize = 14 });
+            labels.Children.Add(new TextBlock
+            {
+                Text = "WATCHDOG",
+                FontSize = 10,
+                CharacterSpacing = 210,
+                Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0, 226, 255))
+            });
+            header.Children.Add(labels);
+            return header;
+        }
 
         private void Navigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {

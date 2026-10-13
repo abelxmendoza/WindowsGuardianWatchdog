@@ -3,29 +3,32 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     
     <!-- Omega Technologies Dark Theme Colors - Solid Color Brushes -->
-    <SolidColorBrush x:Key="PrimaryPurpleBrush" Color="#8A2BE2"/>
-    <SolidColorBrush x:Key="SecondaryRedBrush" Color="#FF0044"/>
-    <SolidColorBrush x:Key="AccentCyanBrush" Color="#00FFFF"/>
-    <SolidColorBrush x:Key="TextGrayBrush" Color="#808080"/>
-    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#E6E6E6"/>
-    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#999999"/>
-    <SolidColorBrush x:Key="BackgroundBlackBrush" Color="#000000"/>
-    <SolidColorBrush x:Key="BackgroundNoiseBrush" Color="#0A0A0A"/>
-    <SolidColorBrush x:Key="BackgroundCardBrush" Color="#1A1A1A"/>
-    <SolidColorBrush x:Key="ThemePurpleBrush" Color="#8C00FF"/>
-    <SolidColorBrush x:Key="ThemePurpleDarkBrush" Color="#5900A6"/>
-    <SolidColorBrush x:Key="ThemePurpleLightBrush" Color="#B333FF"/>
-    <SolidColorBrush x:Key="SurfaceBrush" Color="#111318"/>
-    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#181B22"/>
-    <SolidColorBrush x:Key="SurfaceBorderBrush" Color="#2A2E38"/>
-    <SolidColorBrush x:Key="SuccessBrush" Color="#42D392"/>
-    <SolidColorBrush x:Key="WarningBrush" Color="#F4B942"/>
-    <SolidColorBrush x:Key="DangerBrush" Color="#FF5D73"/>
-    <SolidColorBrush x:Key="TextTertiaryBrush" Color="#6F7685"/>
+    <SolidColorBrush x:Key="PrimaryPurpleBrush" Color="#1677FF"/>
+    <SolidColorBrush x:Key="SecondaryRedBrush" Color="#FF8A16"/>
+    <SolidColorBrush x:Key="AccentCyanBrush" Color="#00E2FF"/>
+    <SolidColorBrush x:Key="TextGrayBrush" Color="#859BC0"/>
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#EAF7FF"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#91A9CC"/>
+    <SolidColorBrush x:Key="BackgroundBlackBrush" Color="#020711"/>
+    <SolidColorBrush x:Key="BackgroundNoiseBrush" Color="#050D1B"/>
+    <SolidColorBrush x:Key="BackgroundCardBrush" Color="#081426"/>
+    <SolidColorBrush x:Key="ThemePurpleBrush" Color="#0A55D9"/>
+    <SolidColorBrush x:Key="ThemePurpleDarkBrush" Color="#0A2D70"/>
+    <SolidColorBrush x:Key="ThemePurpleLightBrush" Color="#47BFFF"/>
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#07111F"/>
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#0B1B31"/>
+    <SolidColorBrush x:Key="SurfaceBorderBrush" Color="#123C72"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="#00E2FF"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#FFAD22"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="#FF6A21"/>
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="#5F789F"/>
+    <LinearGradientBrush x:Key="GuardianBlueGradient" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#123DFF" Offset="0"/><GradientStop Color="#00E2FF" Offset="1"/>
+    </LinearGradientBrush>
     
     <!-- Button Styles -->
     <Style x:Key="PrimaryButtonStyle" TargetType="Button">
-        <Setter Property="Background" Value="{StaticResource PrimaryPurpleBrush}"/>
+        <Setter Property="Background" Value="{StaticResource GuardianBlueGradient}"/>
         <Setter Property="Foreground" Value="White"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="20,10"/>
@@ -47,7 +50,7 @@
     </Style>
     
     <Style x:Key="DangerButtonStyle" TargetType="Button">
-        <Setter Property="Background" Value="{StaticResource SecondaryRedBrush}"/>
+        <Setter Property="Background" Value="#C64E0B"/>
         <Setter Property="Foreground" Value="White"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="20,10"/>
@@ -139,7 +142,7 @@
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/><Setter Property="TextTrimming" Value="CharacterEllipsis"/>
     </Style>
     <Style x:Key="HeroCardStyle" TargetType="Border">
-        <Setter Property="Background" Value="#151922"/><Setter Property="BorderBrush" Value="#303746"/>
+        <Setter Property="Background" Value="#07172C"/><Setter Property="BorderBrush" Value="#1164B8"/>
         <Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="14"/><Setter Property="Padding" Value="24"/>
     </Style>
     <Style x:Key="MetricCardStyle" TargetType="Border">
@@ -154,7 +157,7 @@
         <Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="7"/><Setter Property="Padding" Value="16,9"/>
     </Style>
     <Style x:Key="ActionRowButtonStyle" TargetType="Button">
-        <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Background" Value="#151820"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Background" Value="#09182A"/>
         <Setter Property="BorderBrush" Value="{StaticResource SurfaceBorderBrush}"/><Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CornerRadius" Value="9"/><Setter Property="Padding" Value="15,13"/>
     </Style>

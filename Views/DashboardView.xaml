@@ -3,13 +3,18 @@
     <StackPanel Padding="32" Spacing="24" MaxWidth="1500">
       <Grid>
         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <StackPanel><TextBlock Text="Security Dashboard" Style="{StaticResource PageTitleTextStyle}"/><TextBlock Text="Live protection, posture, and system health for this Windows PC" Style="{StaticResource BodyTextStyle}" Margin="0,6,0,0"/></StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="16">
+          <Border Width="58" Height="58" CornerRadius="12" BorderBrush="{StaticResource AccentCyanBrush}" BorderThickness="1" Background="#020711">
+            <Image Source="ms-appx:///Resources/LogoMark.png" Stretch="UniformToFill"/>
+          </Border>
+          <StackPanel VerticalAlignment="Center"><TextBlock Text="Security Dashboard" Style="{StaticResource PageTitleTextStyle}"/><TextBlock Text="Live protection, posture, and system health for this Windows PC" Style="{StaticResource BodyTextStyle}" Margin="0,4,0,0"/></StackPanel>
+        </StackPanel>
         <Button Grid.Column="1" Content="Refresh status" Click="RefreshButton_Click" Style="{StaticResource SecondaryButtonStyle}" VerticalAlignment="Center"/>
       </Grid>
       <Border Style="{StaticResource HeroCardStyle}">
         <Grid ColumnSpacing="24">
           <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-          <Border Width="76" Height="76" CornerRadius="38" Background="#182D27"><FontIcon x:Name="PostureIcon" Glyph="&#xE83D;" FontSize="36" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+          <Border Width="76" Height="76" CornerRadius="38" Background="#06213B" BorderBrush="{StaticResource AccentCyanBrush}" BorderThickness="1"><FontIcon x:Name="PostureIcon" Glyph="&#xE83D;" FontSize="36" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
           <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4"><TextBlock Text="SECURITY POSTURE" Style="{StaticResource EyebrowTextStyle}"/><TextBlock x:Name="SecurityStatusText" Text="Checking this PC…" FontSize="27" FontWeight="SemiBold"/><TextBlock x:Name="SecuritySummaryText" Text="Reading Microsoft Defender and system health" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/></StackPanel>
           <StackPanel Grid.Column="2" VerticalAlignment="Center"><TextBlock x:Name="SecurityScoreText" Text="—" FontSize="46" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" HorizontalAlignment="Right"/><TextBlock Text="POSTURE SCORE" Style="{StaticResource EyebrowTextStyle}"/></StackPanel>
         </Grid>

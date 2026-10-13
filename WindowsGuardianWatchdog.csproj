@@ -40,6 +40,10 @@
     <Content Include="Resources\Logo.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Resources\LogoMark.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Update="Resources\LogoLegacy.png" />
   </ItemGroup>
 
   <PropertyGroup>
