@@ -1,6 +1,16 @@
 # Windows Guardian Watchdog
 
+<p align="center">
+  <img src="Resources/Logo.png" alt="Windows Guardian Watchdog wolf logo" width="560" />
+</p>
+
+<p align="center">
+  <strong>Native Windows protection with a security-first, local-only design.</strong>
+</p>
+
 A comprehensive Windows-native security monitoring and threat detection application, inspired by [MacGuardianWatchdog](https://github.com/abelxmendoza/MacGuardianWatchdog). Built with WinUI 3 for a modern, native Windows experience.
+
+The wolf mark is used consistently by the executable, Windows taskbar, Desktop shortcut, Start menu entry, navigation shell, and application pages. The full wordmark above is the canonical project artwork.
 
 ## Features
 

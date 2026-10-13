@@ -1,27 +1,11 @@
 # Resources Folder
 
-## Logo Image
+## Brand assets
 
-Place your logo image file here as `Logo.png`.
+- `Logo.png` — canonical full Windows Guardian Watchdog artwork and README image.
+- `LogoMark.png` — square wolf-head crop used inside the application UI.
+- `Logo.ico` — Windows icon embedded into the executable and shown by the taskbar, Desktop shortcut, and Start menu.
+- `LogoLegacy.png` — preserved original WGW placeholder mark.
 
-### Recommended Specifications:
-- **Format**: PNG with transparency
-- **Sizes needed**:
-  - 256x256 pixels (app icon)
-  - 512x512 pixels (splash screen)
-  - 1024x1024 pixels (store submission)
-- **File name**: `Logo.png`
-
-The logo should feature:
-- The Windows Guardian Watchdog wolf/dog head with Omega symbol
-- Windows logo in the jaws
-- Purple/red color scheme matching the brand
-- Text: "WINDOWSGUARDIAN WATCHDOG"
-
-Once you add the logo file, it will automatically appear:
-- In the NavigationView header
-- On the Dashboard
-- As the app icon
-- In the taskbar
-- In the Start menu
+The active palette is near-black and deep navy with electric blue, cyan, and amber accents. When the canonical artwork changes, regenerate both `LogoMark.png` and the multi-use Windows `Logo.ico` so every Windows shell surface remains consistent.
 
