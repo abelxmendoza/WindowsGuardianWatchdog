@@ -36,3 +36,16 @@ $StartMenuShortcut.Save()
 
 Write-Host "Start Menu shortcut created successfully!" -ForegroundColor Green
 
+# If the user has already pinned the app, refresh that existing taskbar link.
+# Windows caches pinned-link icons independently from Desktop and Start menu links.
+$PinnedShortcutPath = Join-Path $env:APPDATA "Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\WindowsGuardianWatchdog.lnk"
+if (Test-Path -LiteralPath $PinnedShortcutPath) {
+    $PinnedShortcut = $WshShell.CreateShortcut($PinnedShortcutPath)
+    $PinnedShortcut.TargetPath = $ExecutablePath
+    $PinnedShortcut.WorkingDirectory = $WorkingDirectory
+    $PinnedShortcut.Description = "Enterprise-Grade Security Monitoring and System Maintenance"
+    $PinnedShortcut.IconLocation = "$ExecutablePath,0"
+    $PinnedShortcut.Save()
+    Write-Host "Pinned taskbar shortcut icon refreshed successfully!" -ForegroundColor Green
+}
+

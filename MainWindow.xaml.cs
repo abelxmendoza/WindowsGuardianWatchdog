@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using WindowsGuardianWatchdog.Views;
 using WinRT.Interop;
 
@@ -15,6 +16,8 @@ namespace WindowsGuardianWatchdog
     {
         private readonly Frame _contentFrame = new();
         private readonly NavigationView _navigation = new();
+        private IntPtr _largeIconHandle;
+        private IntPtr _smallIconHandle;
         private readonly Dictionary<string, Type> _routes = new()
         {
             ["Dashboard"] = typeof(DashboardView), ["SecurityOverview"] = typeof(SecurityOverviewView),
@@ -126,7 +129,11 @@ namespace WindowsGuardianWatchdog
             var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(windowHandle);
             var appWindow = AppWindow.GetFromWindowId(windowId);
             var iconPath = Path.Combine(AppContext.BaseDirectory, "Resources", "Logo.ico");
-            if (File.Exists(iconPath)) appWindow.SetIcon(iconPath);
+            if (File.Exists(iconPath))
+            {
+                appWindow.SetIcon(iconPath);
+                ApplyNativeWindowIcons(windowHandle, iconPath);
+            }
             appWindow.Resize(new Windows.Graphics.SizeInt32(1440, 900));
             if (appWindow.Presenter is OverlappedPresenter presenter)
             {
@@ -134,5 +141,26 @@ namespace WindowsGuardianWatchdog
                 presenter.PreferredMinimumHeight = 640;
             }
         }
+
+        private void ApplyNativeWindowIcons(IntPtr windowHandle, string iconPath)
+        {
+            _largeIconHandle = LoadImage(IntPtr.Zero, iconPath, ImageIcon, 64, 64, LoadFromFile);
+            _smallIconHandle = LoadImage(IntPtr.Zero, iconPath, ImageIcon, 32, 32, LoadFromFile);
+
+            if (_largeIconHandle != IntPtr.Zero) SendMessage(windowHandle, SetIconMessage, IconBig, _largeIconHandle);
+            if (_smallIconHandle != IntPtr.Zero) SendMessage(windowHandle, SetIconMessage, IconSmall, _smallIconHandle);
+        }
+
+        private const uint SetIconMessage = 0x0080;
+        private const int IconSmall = 0;
+        private const int IconBig = 1;
+        private const uint ImageIcon = 1;
+        private const uint LoadFromFile = 0x0010;
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern IntPtr LoadImage(IntPtr instance, string name, uint type, int width, int height, uint load);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern IntPtr SendMessage(IntPtr window, uint message, int parameter, IntPtr value);
     }
 }
