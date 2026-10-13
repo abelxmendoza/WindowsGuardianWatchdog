@@ -122,10 +122,16 @@ Creates a ZIP file with installer script in `dist\WindowsGuardianWatchdog-v1.0.0
 
 ### MSIX Package (Modern Windows App)
 ```powershell
+# Validate and create an unsigned package
 .\CreateMSIXPackage.ps1
+
+# Create a production package signed with a trusted code-signing certificate
+.\CreateMSIXPackage.ps1 -CertificatePath C:\secure\codesigning.pfx -CertificatePassword $env:WG_SIGNING_PASSWORD
 ```
 Creates an MSIX package in `dist\msix\WindowsGuardianWatchdog.msix`
-Requires Windows SDK
+and verifies its signature when a certificate is supplied. Requires the Windows SDK.
+Keep certificates and passwords outside the repository. A self-signed certificate is
+only suitable for local testing and does not establish Smart App Control reputation.
 
 ### Portable Package (Self-Contained)
 ```powershell
