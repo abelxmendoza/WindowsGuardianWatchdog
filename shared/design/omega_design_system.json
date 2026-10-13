@@ -1,0 +1,122 @@
+{
+  "designSystem": {
+    "name": "Omega Technologies Dark",
+    "version": "1.0",
+    "description": "Cross-platform design system for Windows Guardian Watchdog and MacGuardian Watchdog",
+    "colors": {
+      "primary": {
+        "name": "Electric Purple",
+        "hex": "#8A2BE2",
+        "rgb": "rgb(138, 43, 226)",
+        "usage": "Highlights, headers, prompts, primary actions"
+      },
+      "secondary": {
+        "name": "Neon Red",
+        "hex": "#FF0044",
+        "rgb": "rgb(255, 0, 68)",
+        "usage": "Alerts, errors, danger outputs, critical actions"
+      },
+      "accent": {
+        "name": "Cyan Glow",
+        "hex": "#00FFFF",
+        "rgb": "rgb(0, 255, 255)",
+        "usage": "Selection, cursor, git status, interactive elements"
+      },
+      "text": {
+        "name": "Dim Gray",
+        "hex": "#808080",
+        "rgb": "rgb(128, 128, 128)",
+        "usage": "Regular text, body content"
+      },
+      "textPrimary": {
+        "name": "Light Gray",
+        "hex": "#E6E6E6",
+        "rgb": "rgb(230, 230, 230)",
+        "usage": "Primary text, headings"
+      },
+      "textSecondary": {
+        "name": "Secondary Gray",
+        "hex": "#999999",
+        "rgb": "rgb(153, 153, 153)",
+        "usage": "Secondary text, captions"
+      },
+      "background": {
+        "name": "Deep Black",
+        "hex": "#000000",
+        "rgb": "rgb(0, 0, 0)",
+        "usage": "Base background"
+      },
+      "backgroundNoise": {
+        "name": "Background Noise",
+        "hex": "#0A0A0A",
+        "rgb": "rgb(10, 10, 10)",
+        "usage": "Subtle background variation"
+      },
+      "cardBackground": {
+        "name": "Card Background",
+        "hex": "#1A1A1A",
+        "rgb": "rgb(26, 26, 26)",
+        "usage": "Card/panel backgrounds"
+      },
+      "themePurple": {
+        "hex": "#8C00FF",
+        "rgb": "rgb(140, 0, 255)"
+      },
+      "themePurpleDark": {
+        "hex": "#5900A6",
+        "rgb": "rgb(89, 0, 166)"
+      },
+      "themePurpleLight": {
+        "hex": "#B333FF",
+        "rgb": "rgb(179, 51, 255)"
+      }
+    },
+    "typography": {
+      "title": {
+        "size": 32,
+        "weight": "bold",
+        "lineHeight": 1.2
+      },
+      "subtitle": {
+        "size": 18,
+        "weight": "medium",
+        "lineHeight": 1.4
+      },
+      "body": {
+        "size": 14,
+        "weight": "regular",
+        "lineHeight": 1.6
+      },
+      "caption": {
+        "size": 12,
+        "weight": "regular",
+        "lineHeight": 1.5
+      }
+    },
+    "spacing": {
+      "small": 8,
+      "medium": 16,
+      "large": 24,
+      "xlarge": 32
+    },
+    "components": {
+      "cardRadius": 12,
+      "cardPadding": 20,
+      "cardSpacing": 16,
+      "buttonPadding": {
+        "horizontal": 20,
+        "vertical": 10
+      },
+      "borderWidth": 1
+    },
+    "animations": {
+      "duration": {
+        "short": 150,
+        "medium": 300,
+        "long": 500
+      },
+      "easing": "cubic-bezier(0.4, 0.0, 0.2, 1.0)"
+    }
+  }
+}
+

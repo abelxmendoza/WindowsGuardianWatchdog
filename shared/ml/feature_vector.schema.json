@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ML Feature Vector Schema",
+  "description": "Feature vector schema for ML anomaly detection",
+  "type": "object",
+  "required": ["timestamp", "features"],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 8,
+      "maxItems": 8,
+      "description": "Feature vector: [processCount, networkConnections, cpuUsage, memoryUsage, diskActivity, fileSystemChanges, registryChanges, activeUsers]"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": ["windows", "macos"]
+        },
+        "systemId": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
+

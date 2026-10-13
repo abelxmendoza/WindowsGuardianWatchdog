@@ -1,0 +1,45 @@
+{
+  "profile": "omega_black_ops",
+  "version": "1.0.0",
+  "description": "Windows Guardian Watchdog Security Hardening Profile",
+  "enableDefender": true,
+  "enablePUA": true,
+  "enableASR": true,
+  "enableControlledFolderAccess": true,
+  "enableFirewallLockdown": true,
+  "enableUAC": true,
+  "enableSmartScreen": true,
+  "allowRollback": true,
+  "rules": [
+    {
+      "id": "DEFENDER_REALTIME",
+      "enabled": true
+    },
+    {
+      "id": "DEFENDER_PUA",
+      "enabled": true
+    },
+    {
+      "id": "DEFENDER_CONTROLLED_FOLDER",
+      "enabled": true
+    },
+    {
+      "id": "DEFENDER_ASR",
+      "enabled": true
+    },
+    {
+      "id": "FIREWALL_ENABLE",
+      "enabled": true
+    },
+    {
+      "id": "UAC_ENABLE",
+      "enabled": true
+    },
+    {
+      "id": "SMARTScreen_ENABLE",
+      "enabled": true
+    }
+  ]
+}
+
+

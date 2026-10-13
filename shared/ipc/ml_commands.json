@@ -1,0 +1,43 @@
+{
+  "commands": {
+    "ml_status": {
+      "description": "Get current ML engine status",
+      "response": {
+        "anomalyScore": "integer (0-100)",
+        "baselineState": "string (Stable|Adapting|Drift|NotTrained)",
+        "riskTrend": "string (Up|Down|Flat)",
+        "lastAnalysis": "ISO8601 timestamp"
+      }
+    },
+    "ml_top_anomalies": {
+      "description": "Get top N anomalies",
+      "parameters": {
+        "limit": "integer (default: 5)"
+      },
+      "response": {
+        "anomalies": "array of Anomaly objects"
+      }
+    },
+    "ml_baseline_status": {
+      "description": "Get baseline training status",
+      "response": {
+        "state": "string",
+        "isTrained": "boolean",
+        "isLearning": "boolean"
+      }
+    },
+    "ml_train_baseline": {
+      "description": "Train baseline from historical data",
+      "parameters": {
+        "data": "array of SystemMetrics"
+      }
+    },
+    "ml_analyze": {
+      "description": "Trigger ML analysis",
+      "response": {
+        "analysis": "AnomalyAnalysis object"
+      }
+    }
+  }
+}
+

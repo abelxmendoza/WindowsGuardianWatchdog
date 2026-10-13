@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Security Report Schema",
+  "description": "Cross-platform security report schema",
+  "type": "object",
+  "required": ["reportType", "generatedAt", "period", "securityScore"],
+  "properties": {
+    "reportType": {
+      "type": "string",
+      "enum": ["daily", "weekly", "monthly", "on_demand"],
+      "description": "Report type"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Report generation timestamp"
+    },
+    "period": {
+      "type": "object",
+      "required": ["start", "end"],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "securityScore": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Overall security score"
+    },
+    "overallStatus": {
+      "type": "string",
+      "enum": ["excellent", "good", "fair", "poor", "critical"]
+    },
+    "executiveSummary": {
+      "type": "string",
+      "description": "Executive summary text"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/finding"
+      }
+    },
+    "threats": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/threat"
+      }
+    },
+    "mlAnalysis": {
+      "type": "object",
+      "properties": {
+        "anomalyScore": {
+          "type": "number"
+        },
+        "riskTrend": {
+          "type": "string",
+          "enum": ["up", "down", "flat"]
+        }
+      }
+    }
+  },
+  "definitions": {
+    "finding": {
+      "type": "object",
+      "properties": {
+        "category": { "type": "string" },
+        "title": { "type": "string" },
+        "severity": { "type": "string" },
+        "description": { "type": "string" },
+        "recommendation": { "type": "string" }
+      }
+    },
+    "threat": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "severity": { "type": "string" },
+        "description": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}
+

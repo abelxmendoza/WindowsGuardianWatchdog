@@ -1,0 +1,21 @@
+{
+  "name": "HIPAA",
+  "description": "Health Insurance Portability and Accountability Act compliance",
+  "requiredChecks": [
+    "User Account Control (UAC)",
+    "Windows Defender",
+    "Windows Firewall",
+    "BitLocker Encryption",
+    "Event Logging",
+    "Windows Updates",
+    "Access Control",
+    "Data Encryption"
+  ],
+  "requirements": {
+    "encryption": "required",
+    "accessControl": "required",
+    "auditLogging": "required",
+    "dataProtection": "required"
+  }
+}
+

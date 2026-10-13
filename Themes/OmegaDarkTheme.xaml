@@ -1,0 +1,116 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <!-- Omega Technologies Dark Theme Colors - Solid Color Brushes -->
+    <SolidColorBrush x:Key="PrimaryPurpleBrush" Color="#8A2BE2"/>
+    <SolidColorBrush x:Key="SecondaryRedBrush" Color="#FF0044"/>
+    <SolidColorBrush x:Key="AccentCyanBrush" Color="#00FFFF"/>
+    <SolidColorBrush x:Key="TextGrayBrush" Color="#808080"/>
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#E6E6E6"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#999999"/>
+    <SolidColorBrush x:Key="BackgroundBlackBrush" Color="#000000"/>
+    <SolidColorBrush x:Key="BackgroundNoiseBrush" Color="#0A0A0A"/>
+    <SolidColorBrush x:Key="BackgroundCardBrush" Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="ThemePurpleBrush" Color="#8C00FF"/>
+    <SolidColorBrush x:Key="ThemePurpleDarkBrush" Color="#5900A6"/>
+    <SolidColorBrush x:Key="ThemePurpleLightBrush" Color="#B333FF"/>
+    
+    <!-- Button Styles -->
+    <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource PrimaryPurpleBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="20,10"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            BorderThickness="0"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" 
+                                        VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+    <Style x:Key="DangerButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource SecondaryRedBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="20,10"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="CornerRadius" Value="4"/>
+    </Style>
+    
+    <Style x:Key="AccentButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+        <Setter Property="Background" Value="{StaticResource AccentCyanBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource BackgroundBlackBrush}"/>
+    </Style>
+    
+    <!-- Card Style -->
+    <Style x:Key="CardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource BackgroundCardBrush}"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="15"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource ThemePurpleDarkBrush}"/>
+    </Style>
+    
+    <!-- TextBlock Styles -->
+    <Style x:Key="TitleTextStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource PrimaryPurpleBrush}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontSize" Value="32"/>
+    </Style>
+    
+    <Style x:Key="SubtitleTextStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="20"/>
+    </Style>
+    
+    <Style x:Key="BodyTextStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource TextGrayBrush}"/>
+        <Setter Property="FontSize" Value="14"/>
+    </Style>
+    
+    <Style x:Key="AlertTextStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource SecondaryRedBrush}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    
+    <Style x:Key="SuccessTextStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="#00FF00"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    
+    <!-- ListView Styles -->
+    <Style x:Key="DarkListViewStyle" TargetType="ListView">
+        <Setter Property="Background" Value="{StaticResource BackgroundNoiseBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    
+    <!-- TextBox Styles -->
+    <Style x:Key="DarkTextBoxStyle" TargetType="TextBox">
+        <Setter Property="Background" Value="{StaticResource BackgroundCardBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource ThemePurpleDarkBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="10"/>
+    </Style>
+    
+    <!-- ProgressBar Style -->
+    <Style x:Key="CyanProgressBarStyle" TargetType="ProgressBar">
+        <Setter Property="Foreground" Value="{StaticResource AccentCyanBrush}"/>
+        <Setter Property="Background" Value="{StaticResource BackgroundCardBrush}"/>
+    </Style>
+    
+</ResourceDictionary>
+

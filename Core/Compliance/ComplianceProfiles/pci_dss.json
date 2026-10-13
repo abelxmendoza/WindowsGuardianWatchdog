@@ -1,0 +1,23 @@
+{
+  "name": "PCI-DSS",
+  "description": "Payment Card Industry Data Security Standard compliance",
+  "requiredChecks": [
+    "User Account Control (UAC)",
+    "Windows Defender",
+    "Windows Firewall",
+    "BitLocker Encryption",
+    "Event Logging",
+    "Network Security",
+    "Access Control",
+    "Data Encryption",
+    "Vulnerability Management"
+  ],
+  "requirements": {
+    "encryption": "required",
+    "networkSecurity": "required",
+    "accessControl": "required",
+    "monitoring": "required",
+    "vulnerabilityManagement": "required"
+  }
+}
+

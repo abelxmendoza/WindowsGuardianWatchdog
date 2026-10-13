@@ -1,0 +1,21 @@
+{
+  "name": "GDPR",
+  "description": "General Data Protection Regulation compliance",
+  "requiredChecks": [
+    "User Account Control (UAC)",
+    "Windows Defender",
+    "Windows Firewall",
+    "BitLocker Encryption",
+    "Event Logging",
+    "Data Protection",
+    "Access Control",
+    "Privacy Controls"
+  ],
+  "requirements": {
+    "dataProtection": "required",
+    "privacyControls": "required",
+    "accessControl": "required",
+    "auditLogging": "required"
+  }
+}
+

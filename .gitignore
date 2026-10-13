@@ -1,0 +1,45 @@
+# Visual Studio and user-specific files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# .NET build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+artifacts/
+
+# Generated packages and installers
+dist/
+*.msix
+*.msixbundle
+*.appx
+*.appxbundle
+*.msi
+
+# Test, coverage, and runtime output
+TestResults/
+coverage*/
+*.coverage
+*.coveragexml
+*.log
+reports/
+
+# Local environment and signing material
+.env
+.env.*
+*.pfx
+*.p12
+*.snk
+*.cer
+*.key
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

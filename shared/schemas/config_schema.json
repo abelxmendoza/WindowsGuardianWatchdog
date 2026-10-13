@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Windows Guardian Watchdog Configuration Schema",
+  "description": "Cross-platform compatible configuration schema",
+  "type": "object",
+  "properties": {
+    "monitoring": {
+      "type": "object",
+      "properties": {
+        "processMonitoringInterval": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 30,
+          "description": "Process monitoring interval in seconds"
+        },
+        "fileIntegrityInterval": {
+          "type": "integer",
+          "minimum": 60,
+          "default": 300,
+          "description": "File integrity check interval in seconds"
+        },
+        "threatHuntInterval": {
+          "type": "integer",
+          "minimum": 300,
+          "default": 3600,
+          "description": "Threat hunt interval in seconds"
+        },
+        "enableRealTimeMonitoring": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "alerts": {
+      "type": "object",
+      "properties": {
+        "enableEmailAlerts": {
+          "type": "boolean",
+          "default": false
+        },
+        "emailRecipients": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "enableToastNotifications": {
+          "type": "boolean",
+          "default": true
+        },
+        "alertThrottling": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "reports": {
+      "type": "object",
+      "properties": {
+        "enableDailyReports": {
+          "type": "boolean",
+          "default": true
+        },
+        "enableWeeklyReports": {
+          "type": "boolean",
+          "default": true
+        },
+        "enableMonthlyReports": {
+          "type": "boolean",
+          "default": false
+        },
+        "reportFormat": {
+          "type": "string",
+          "enum": ["html", "json", "text", "all"],
+          "default": "html"
+        },
+        "emailReports": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "cleanup": {
+      "type": "object",
+      "properties": {
+        "autoCleanupEnabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "cleanupInterval": {
+          "type": "integer",
+          "default": 86400
+        },
+        "keepTempFilesDays": {
+          "type": "integer",
+          "default": 7
+        }
+      }
+    },
+    "ml": {
+      "type": "object",
+      "properties": {
+        "enableMLAnalysis": {
+          "type": "boolean",
+          "default": true
+        },
+        "baselineLearningEnabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "anomalyThreshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.7
+        }
+      }
+    },
+    "theme": {
+      "type": "string",
+      "default": "omega_tech_dark"
+    }
+  }
+}
+

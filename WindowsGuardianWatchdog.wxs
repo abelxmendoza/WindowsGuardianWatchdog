@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" 
+           Name="Windows Guardian Watchdog" 
+           Language="1033" 
+           Version="1.0.0.0" 
+           Manufacturer="Windows Guardian Watchdog" 
+           UpgradeCode="YOUR-GUID-HERE">
+    
+    <Package InstallerVersion="200" 
+             Compressed="yes" 
+             InstallScope="perMachine"
+             Description="Enterprise-Grade Security Monitoring and System Maintenance"
+             Manufacturer="Windows Guardian Watchdog" />
+    
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    
+    <MediaTemplate />
+    
+    <Feature Id="ProductFeature" Title="Windows Guardian Watchdog" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+    </Feature>
+    
+    <!-- Desktop Shortcut -->
+    <Property Id="ARPPRODUCTICON" Value="logo.ico" />
+    <Icon Id="logo.ico" SourceFile="Resources\Logo.png" />
+    
+  </Product>
+  
+  <Fragment>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="WindowsGuardianWatchdog">
+          <Component Id="ApplicationFiles" Guid="*">
+            <File Id="WindowsGuardianWatchdog.exe" 
+                  Source="bin\Release\net8.0-windows10.0.19041.0\WindowsGuardianWatchdog.exe" 
+                  KeyPath="yes" />
+            <File Id="Logo.png" Source="Resources\Logo.png" />
+          </Component>
+        </Directory>
+      </Directory>
+      
+      <Directory Id="DesktopFolder" Name="Desktop">
+        <Component Id="DesktopShortcut" Guid="*">
+          <Shortcut Id="DesktopShortcut" 
+                    Name="Windows Guardian Watchdog" 
+                    Target="[INSTALLFOLDER]WindowsGuardianWatchdog.exe" 
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="logo.ico" />
+          <RemoveFolder Id="DesktopFolder" On="uninstall" />
+          <RegistryValue Root="HKCU" 
+                         Key="Software\WindowsGuardianWatchdog" 
+                         Name="DesktopShortcut" 
+                         Type="integer" 
+                         Value="1" 
+                         KeyPath="yes" />
+        </Component>
+      </Directory>
+      
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="Windows Guardian Watchdog">
+          <Component Id="StartMenuShortcut" Guid="*">
+            <Shortcut Id="StartMenuShortcut" 
+                      Name="Windows Guardian Watchdog" 
+                      Target="[INSTALLFOLDER]WindowsGuardianWatchdog.exe" 
+                      WorkingDirectory="INSTALLFOLDER"
+                      Icon="logo.ico" />
+            <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
+            <RegistryValue Root="HKCU" 
+                           Key="Software\WindowsGuardianWatchdog" 
+                           Name="StartMenuShortcut" 
+                           Type="integer" 
+                           Value="1" 
+                           KeyPath="yes" />
+          </Component>
+        </Directory>
+      </Directory>
+    </Directory>
+  </Fragment>
+  
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <ComponentRef Id="ApplicationFiles" />
+      <ComponentRef Id="DesktopShortcut" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </ComponentGroup>
+  </Fragment>
+</Wix>
+

@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Security Event Specification v1.0.0",
+  "description": "Cross-platform event schema for Windows Guardian Watchdog and MacGuardian Watchdog",
+  "type": "object",
+  "required": ["eventSpec", "platform", "timestamp", "type", "severity"],
+  "properties": {
+    "eventSpec": {
+      "type": "string",
+      "enum": ["1.0.0"],
+      "description": "Event specification version"
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["windows", "macos"],
+      "description": "Source platform"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO8601 timestamp"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "security_audit",
+        "file_integrity",
+        "threat_detection",
+        "process_monitoring",
+        "network_analysis",
+        "ml_anomaly",
+        "alert",
+        "incident",
+        "remediation",
+        "system_health"
+      ],
+      "description": "Event type"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low", "info"],
+      "description": "Event severity"
+    },
+    "category": {
+      "type": "string",
+      "description": "Event category"
+    },
+    "message": {
+      "type": "string",
+      "description": "Human-readable message"
+    },
+    "data": {
+      "type": "object",
+      "description": "Platform-specific event data",
+      "additionalProperties": true
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "correlationId": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
+

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap rescap">
+
+  <Identity
+    Name="WindowsGuardianWatchdog"
+    Publisher="CN=WindowsGuardianWatchdog"
+    Version="1.0.0.0" />
+
+  <Extensions>
+    <uap5:Extension Category="windows.appExecutionAlias" 
+                    xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5">
+      <uap5:AppExecutionAlias>
+        <uap5:ExecutionAlias Alias="wguardian.exe" />
+        <uap5:ExecutionAlias Alias="watchdog.exe" />
+      </uap5:AppExecutionAlias>
+    </uap5:Extension>
+  </Extensions>
+
+  <Properties>
+    <DisplayName>Windows Guardian Watchdog</DisplayName>
+    <PublisherDisplayName>Windows Guardian Watchdog</PublisherDisplayName>
+    <Logo>Resources\Logo.png</Logo>
+    <Description>Enterprise-Grade Security Monitoring and System Maintenance for Windows</Description>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.19041.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="x-generate"/>
+  </Resources>
+
+  <Applications>
+    <Application Id="App"
+      Executable="$targetnametoken$.exe"
+      EntryPoint="$targetentrypoint$">
+      <uap:VisualElements
+        DisplayName="Windows Guardian Watchdog"
+        Description="Enterprise-Grade Security Monitoring and System Maintenance"
+        Square150x150Logo="Resources\Logo.png"
+        Square44x44Logo="Resources\Logo.png"
+        BackgroundColor="#1a0033">
+        <uap:DefaultTile 
+          Wide310x150Logo="Resources\Logo.png"
+          ShowNameOnSquare150x150Logo="true"
+          ShortName="WGuardian" />
+        <uap:SplashScreen 
+          Image="Resources\Logo.png" 
+          BackgroundColor="#1a0033" />
+        <uap:InitialRotationPreference>
+          <uap:Rotation Preference="landscape" />
+        </uap:InitialRotationPreference>
+      </uap:VisualElements>
+      
+      <uap:Protocols>
+        <uap:Protocol Name="wguardian" />
+      </uap:Protocols>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+    <Capability Name="internetClient" />
+  </Capabilities>
+
+</Package>
+
