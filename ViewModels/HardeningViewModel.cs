@@ -19,18 +19,26 @@ namespace WindowsGuardianWatchdog.ViewModels
         public HardeningViewModel()
         {
             _service = new HardeningService();
-            Rules = new ObservableCollection<HardeningRuleItem>(
-                _service.GetAvailableRules().Select(rule => new HardeningRuleItem
+            var ranked = _service.GetAvailableRules()
+                .Select(rule => new HardeningRuleItem
                 {
                     Id = rule.Id,
                     Name = rule.Name,
                     Description = rule.Description,
+                    Why = "Why: " + WhyFor(rule.Id),
                     Category = rule.Category,
                     Severity = rule.Severity.ToString(),
+                    Priority = PriorityFor(rule),
+                    RankWeight = rule.Recommended ? (rule.Severity == HardeningSeverity.Critical ? 0 : 1) : 2,
                     RequiresAdmin = rule.RequiresAdmin,
                     IsSelected = rule.Recommended,
                     Status = "Checking"
-                }));
+                })
+                .OrderBy(rule => rule.RankWeight)
+                .ThenBy(rule => rule.Name)
+                .ToList();
+            for (var index = 0; index < ranked.Count; index++) ranked[index].Rank = (index + 1).ToString();
+            Rules = new ObservableCollection<HardeningRuleItem>(ranked);
             Results = new ObservableCollection<HardeningResult>();
 
             ApplySelectedCommand = new RelayCommand(async () => await ApplyAsync(selectedOnly: true), CanRun);
@@ -200,6 +208,30 @@ namespace WindowsGuardianWatchdog.ViewModels
             }
         }
 
+        private static string PriorityFor(HardeningRule rule)
+        {
+            if (!rule.Recommended) return "Careful";
+            return rule.Severity == HardeningSeverity.Critical ? "Do this first" : "Recommended";
+        }
+
+        private static string WhyFor(string id) => id switch
+        {
+            "DEFENDER_REALTIME" => "If this is off, a bad file can open before Windows has a chance to stop it.",
+            "DEFENDER_PUA" => "This blocks the extra junk some downloads try to install, such as adware.",
+            "DEFENDER_CLOUD" => "A brand-new bad file is easier to recognize when Windows can ask Microsoft about it. Your files are not uploaded.",
+            "DEFENDER_ASR" => "This blocks a set of tricks used against Office and scripts. Some older apps can stop working, so it is off unless you choose it.",
+            "DEFENDER_CONTROLLED_FOLDER" => "This stops unknown apps from changing Documents and Pictures. An app you trust may need permission afterward.",
+            "FIREWALL_ENABLE" => "The firewall is the door between this PC and other computers. It should stay shut to strangers.",
+            "UAC_ENABLE" => "This is the prompt that asks before a program changes Windows. It stops quiet changes.",
+            "SMARTSCREEN" => "This is the warning you see before Windows runs an app it does not recognize.",
+            "AUTORUN_DISABLE" => "A USB stick should not be able to start a program just because you plugged it in.",
+            "SMB1_DISABLE" => "This turns off an old way computers share files. Almost nobody needs it, and it is a common way in.",
+            "WINDOWS_UPDATE_AUTO" => "Windows can install its own fixes while you are away, so the PC does not stay behind.",
+            "GUEST_DISABLE" => "The Guest account is an extra door into the PC. Most people never use it.",
+            "REMOTE_ASSISTANCE_DISABLE" => "This stops someone from asking to control the PC through Windows Remote Assistance.",
+            _ => "This is one of Windows' built-in safety switches."
+        };
+
         private bool CanRun() => !IsBusy;
 
         private void RaiseCommands()
@@ -220,6 +252,10 @@ namespace WindowsGuardianWatchdog.ViewModels
         public string Description { get; set; } = string.Empty;
         public string Category { get; set; } = string.Empty;
         public string Severity { get; set; } = string.Empty;
+        public string Priority { get; set; } = "Recommended";
+        public string Why { get; set; } = string.Empty;
+        public string Rank { get; set; } = string.Empty;
+        public int RankWeight { get; set; }
         public bool RequiresAdmin { get; set; }
 
         public bool IsSelected

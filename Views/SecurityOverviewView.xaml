@@ -1,16 +1,13 @@
 <Page x:Class="WindowsGuardianWatchdog.Views.SecurityOverviewView"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:guide="using:WindowsGuardianWatchdog.Components">
     <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
         <StackPanel Padding="20" Spacing="20" Background="{StaticResource BackgroundBlackBrush}">
             <!-- Header -->
-            <StackPanel Orientation="Horizontal" Spacing="15" Margin="0,0,0,20">
-                <Image Source="ms-appx:///Resources/LogoMark.png" Width="64" Height="64" Stretch="UniformToFill"/>
-                <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="Security Overview" FontSize="32" FontWeight="Bold" Foreground="{StaticResource PrimaryPurpleBrush}"/>
-                    <TextBlock Text="Complete system security status" FontSize="14" Foreground="{StaticResource TextGrayBrush}" Margin="0,5,0,0"/>
-                </StackPanel>
-            </StackPanel>
+            <guide:PageGuide Title="Protection details" Priority="Optional"
+                             Summary="A fuller picture of virus protection, the firewall, and this PC's health."
+                             Why="Home already gives the short version. Open this when you want to see each piece instead of one score."/>
 
             <!-- Alert Banner -->
             <Border x:Name="AlertBanner" 

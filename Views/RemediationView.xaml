@@ -1,17 +1,17 @@
 <Page x:Class="WindowsGuardianWatchdog.Views.RemediationView"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:guide="using:WindowsGuardianWatchdog.Components">
     <!-- Remediation Center View -->
     <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
         <StackPanel Padding="20" Spacing="20" Background="{StaticResource BackgroundBlackBrush}">
-            <StackPanel Orientation="Horizontal" Spacing="15" Margin="0,0,0,20">
-                <Image Source="ms-appx:///Resources/LogoMark.png" Width="64" Height="64" Stretch="UniformToFill"/>
-                <TextBlock Text="Remediation Center" FontSize="32" FontWeight="Bold" Foreground="{StaticResource PrimaryPurpleBrush}" VerticalAlignment="Center"/>
-            </StackPanel>
-            
-            <CheckBox x:Name="DryRunCheckBox" Content="Dry Run Mode (Safe)" IsChecked="True" Margin="0,0,0,20" Foreground="{StaticResource TextPrimaryBrush}"/>
-            
-            <TextBlock Text="Quick Remediation Actions" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+            <guide:PageGuide Title="Fix a problem" Priority="Careful"
+                             Summary="Common repairs, such as turning virus protection back on."
+                             Why="Leave the preview box checked. The app will tell you what it would change before it changes anything. Uncheck it only when you have read the preview and want the repair applied."/>
+
+            <CheckBox x:Name="DryRunCheckBox" Content="Preview first (recommended)" IsChecked="True" Margin="0,0,0,20" Foreground="{StaticResource TextPrimaryBrush}"/>
+
+            <TextBlock Text="Repairs" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
             <StackPanel Spacing="10">
                 <Button Content="Enable Windows Defender" Click="EnableDefenderButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
                 <Button Content="Enable Firewall" Click="EnableFirewallButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>

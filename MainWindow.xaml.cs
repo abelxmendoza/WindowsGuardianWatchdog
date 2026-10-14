@@ -43,48 +43,56 @@ namespace WindowsGuardianWatchdog
             _navigation.IsBackButtonVisible = NavigationViewBackButtonVisible.Collapsed;
             _navigation.IsSettingsVisible = true;
             _navigation.IsPaneToggleButtonVisible = true;
-            _navigation.OpenPaneLength = 280;
+            _navigation.OpenPaneLength = 340;
             _navigation.CompactPaneLength = 52;
             _navigation.PaneHeader = CreatePaneHeader();
             _navigation.PaneFooter = new TextBlock
             {
-                Text = "WATCHDOG  •  WINDOWS PROTECTION",
-                FontSize = 10,
-                CharacterSpacing = 70,
-                Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 71, 191, 255)),
-                Margin = new Thickness(12, 8, 8, 14)
+                Text = "Stays on this PC. Nothing is sent away.",
+                FontSize = 12,
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 145, 169, 204)),
+                Margin = new Thickness(16, 8, 16, 16)
             };
             _navigation.Content = _contentFrame;
             _navigation.SelectionChanged += Navigation_SelectionChanged;
 
-            var dashboard = AddItem("Dashboard", "Dashboard", Symbol.Home);
-            AddHeader("MONITOR");
-            AddItem("Security overview", "SecurityOverview", Symbol.View);
-            AddItem("Live monitor", "SecurityMonitor", Symbol.Play);
-            AddItem("File integrity", "FileIntegrity", Symbol.Document);
-            AddItem("File search", "FileSearch", Symbol.Find);
-            AddItem("Alerts & incidents", "Alerts", Symbol.Important);
-            AddHeader("INVESTIGATE");
-            AddItem("Threat detection", "ThreatDetection", Symbol.Find);
-            AddItem("Security audit", "SecurityAudit", Symbol.AllApps);
-            AddItem("ML insights", "MLInsights", Symbol.OutlineStar);
-            AddHeader("PROTECT");
-            AddItem("Remediation center", "Remediation", Symbol.Repair);
-            AddItem("Security hardening", "Hardening", Symbol.Permissions);
-            AddHeader("MAINTAIN");
-            AddItem("App updates", "AppUpdates", Symbol.Sync);
-            AddItem("System cleanup", "Cleanup", Symbol.Delete);
-            AddItem("Driver manager", "Drivers", Symbol.Download);
-            AddItem("Startup manager", "Startup", Symbol.Setting);
+            var dashboard = AddItem("Home", "What to do next", "Dashboard", Symbol.Home);
+            AddHeader("KEEP THIS PC HEALTHY");
+            AddItem("Update apps", "Install newer versions", "AppUpdates", Symbol.Sync);
+            AddItem("Free up space", "Clear leftover files", "Cleanup", Symbol.Delete);
+            AddItem("Fix hardware", "Devices that need help", "Drivers", Symbol.Download);
+            AddItem("Turn on protection", "Windows safety switches", "Hardening", Symbol.Permissions);
+            AddItem("Startup programs", "What opens with Windows", "Startup", Symbol.Setting);
+            AddHeader("LOOK AROUND");
+            AddItem("What is running", "Programs using this PC", "SecurityMonitor", Symbol.Play);
+            AddItem("Find a file", "Search by the file name", "FileSearch", Symbol.Find);
+            AddItem("Notices", "Things this app noticed", "Alerts", Symbol.Important);
+            AddHeader("A CLOSER LOOK");
+            AddItem("Protection details", "A fuller status picture", "SecurityOverview", Symbol.View);
+            AddItem("Check for risks", "Known public issues", "ThreatDetection", Symbol.Find);
+            AddItem("Watch folders", "Notice if files change", "FileIntegrity", Symbol.Document);
+            AddItem("Protection checkup", "Score the safety switches", "SecurityAudit", Symbol.AllApps);
+            AddItem("Unusual activity", "Spot something out of the ordinary", "MLInsights", Symbol.OutlineStar);
+            AddItem("Fix a problem", "Common repairs, with a preview", "Remediation", Symbol.Repair);
 
             _navigation.SelectedItem = dashboard;
             Content = _navigation;
             Navigate("Dashboard");
         }
 
-        private NavigationViewItem AddItem(string label, string tag, Symbol symbol)
+        private NavigationViewItem AddItem(string label, string hint, string tag, Symbol symbol)
         {
-            var item = new NavigationViewItem { Content = label, Tag = tag, Icon = new SymbolIcon(symbol) };
+            var text = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
+            text.Children.Add(new TextBlock { Text = label, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = 14 });
+            text.Children.Add(new TextBlock
+            {
+                Text = hint,
+                FontSize = 11,
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 133, 155, 192))
+            });
+            var item = new NavigationViewItem { Content = text, Tag = tag, Icon = new SymbolIcon(symbol), MinHeight = 56 };
             _navigation.MenuItems.Add(item);
             return item;
         }
@@ -102,12 +110,11 @@ namespace WindowsGuardianWatchdog
                 Stretch = Stretch.UniformToFill
             });
             var labels = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            labels.Children.Add(new TextBlock { Text = "WINDOWS GUARDIAN", FontWeight = Microsoft.UI.Text.FontWeights.Bold, FontSize = 14 });
+            labels.Children.Add(new TextBlock { Text = "Windows Guardian", FontWeight = Microsoft.UI.Text.FontWeights.Bold, FontSize = 15 });
             labels.Children.Add(new TextBlock
             {
-                Text = "WATCHDOG",
-                FontSize = 10,
-                CharacterSpacing = 210,
+                Text = "Simple care for this PC",
+                FontSize = 11,
                 Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0, 226, 255))
             });
             header.Children.Add(labels);

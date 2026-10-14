@@ -32,7 +32,7 @@ namespace WindowsGuardianWatchdog.Views
             _threatDetector.ThreatDetected += (_, threat) => DispatcherQueue.TryEnqueue(() => AddActivity($"[{threat.Severity}] {threat.Description}", "THREAT"));
             Loaded += async (_, _) => await RefreshStatusAsync();
             MLServiceClient.Initialize(new MLSecurityEngine());
-            AddActivity("Dashboard initialized", "SYSTEM");
+            AddActivity("Ready. Start with step 1, Update your apps.", "HOME");
         }
 
         private async Task RefreshStatusAsync()
@@ -40,7 +40,7 @@ namespace WindowsGuardianWatchdog.Views
             if (_isBusy) return;
             _isBusy = true;
             OperationProgress.Visibility = Visibility.Visible;
-            OperationStatusText.Text = "Reading Windows security state…";
+            OperationStatusText.Text = "Checking how protected this PC is…";
             try
             {
                 var defenderTask = _defender.GetStatusAsync();
@@ -51,19 +51,19 @@ namespace WindowsGuardianWatchdog.Views
                 var controls = new[] { defender.AntivirusEnabled, defender.RealTimeProtectionEnabled, defender.CloudProtectionEnabled, defender.BehaviorMonitoringEnabled, defender.PUAProtectionEnabled };
                 var score = controls.Count(enabled => enabled) * 18 + (health.Status == SystemHealthMonitor.HealthStatus.Healthy ? 10 : 0);
 
-                DefenderStatusText.Text = defender.IsHealthy ? "Protected" : "Needs attention";
-                SystemHealthText.Text = health.Status.ToString();
-                MonitorStatusText.Text = _securityMonitor.IsMonitoring ? "Active" : "Stopped";
+                DefenderStatusText.Text = defender.IsHealthy ? "On" : "Needs a look";
+                SystemHealthText.Text = health.Status == SystemHealthMonitor.HealthStatus.Healthy ? "Looks good" : "Needs a look";
+                MonitorStatusText.Text = _securityMonitor.IsMonitoring ? "Watching" : "Not watching";
                 SecurityScoreText.Text = $"{score}/100";
-                SecurityStatusText.Text = score >= 85 ? "This PC is protected" : score >= 60 ? "Review recommended" : "Action required";
-                SecuritySummaryText.Text = $"Defender antivirus: {(defender.AntivirusEnabled ? "on" : "off")} · Real-time protection: {(defender.RealTimeProtectionEnabled ? "on" : "off")} · Updated {DateTime.Now:t}";
+                SecurityStatusText.Text = score >= 85 ? "This PC looks protected" : score >= 60 ? "A few things are worth checking" : "Start with the list below";
+                SecuritySummaryText.Text = $"Virus protection is {(defender.AntivirusEnabled ? "on" : "off")}. Watching new files is {(defender.RealTimeProtectionEnabled ? "on" : "off")}. Checked at {DateTime.Now:t}.";
                 PostureIcon.Foreground = BrushFor(score >= 85 ? "#42D392" : score >= 60 ? "#F4B942" : "#FF5D73");
                 OperationStatusText.Text = "Status refreshed";
             }
             catch (Exception ex)
             {
-                SecurityStatusText.Text = "Status unavailable";
-                SecuritySummaryText.Text = "Windows security state could not be read. Try running as administrator.";
+                SecurityStatusText.Text = "Could not check just now";
+                SecuritySummaryText.Text = "Windows did not share its protection status. The steps below still work.";
                 DefenderStatusText.Text = "Unknown";
                 SystemHealthText.Text = "Unknown";
                 OperationStatusText.Text = ex.Message;
@@ -78,21 +78,21 @@ namespace WindowsGuardianWatchdog.Views
         {
             _securityMonitor.StartMonitoring();
             _fileMonitor.StartMonitoring();
-            MonitorStatusText.Text = "Active";
+            MonitorStatusText.Text = "Watching";
             StartMonitoringButton.IsEnabled = false;
-            AddActivity("Live process and integrity monitoring started", "MONITOR");
+            AddActivity("Now watching programs and important files.", "WATCHING");
         }
 
-        private async void RunAuditButton_Click(object sender, RoutedEventArgs e) => await RunOperationAsync("Running Windows security audit…", async () =>
+        private async void RunAuditButton_Click(object sender, RoutedEventArgs e) => await RunOperationAsync("Checking the safety switches…", async () =>
         {
             var report = await new SecurityAudit().PerformFullAuditAsync();
-            AddActivity($"Security audit completed · score {report.Score}/100", "AUDIT");
+            AddActivity($"Protection checkup finished. Score {report.Score} out of 100.", "CHECKUP");
         });
 
-        private async void ThreatHuntButton_Click(object sender, RoutedEventArgs e) => await RunOperationAsync("Hunting for threats…", async () =>
+        private async void ThreatHuntButton_Click(object sender, RoutedEventArgs e) => await RunOperationAsync("Looking for known risks…", async () =>
         {
             var report = await _threatDetector.PerformThreatHuntAsync();
-            AddActivity($"Threat hunt completed · {report.ThreatCount} finding(s)", "THREAT HUNT");
+            AddActivity(report.ThreatCount == 0 ? "No known risks stood out." : $"Found {report.ThreatCount} item(s) worth a look.", "RISKS");
         });
 
         private async Task RunOperationAsync(string status, Func<Task> operation)
@@ -109,6 +109,10 @@ namespace WindowsGuardianWatchdog.Views
         private void ViewAlertsButton_Click(object sender, RoutedEventArgs e) => Frame.Navigate(typeof(AlertsView));
         private void OpenUpdatesButton_Click(object sender, RoutedEventArgs e) => Frame.Navigate(typeof(AppUpdatesView));
         private void OpenHardeningButton_Click(object sender, RoutedEventArgs e) => Frame.Navigate(typeof(HardeningView));
+        private void OpenCleanupButton_Click(object sender, RoutedEventArgs e) => Frame.Navigate(typeof(CleanupView));
+        private void OpenDriversButton_Click(object sender, RoutedEventArgs e) => Frame.Navigate(typeof(DriversView));
+        private void OpenStartupButton_Click(object sender, RoutedEventArgs e) => Frame.Navigate(typeof(StartupView));
+        private void OpenMonitorButton_Click(object sender, RoutedEventArgs e) => Frame.Navigate(typeof(SecurityMonitorView));
 
         private void AddActivity(string message, string type)
         {

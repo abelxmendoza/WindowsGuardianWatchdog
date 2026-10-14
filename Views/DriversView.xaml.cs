@@ -12,6 +12,20 @@ namespace WindowsGuardianWatchdog.Views
             this.InitializeComponent();
             _viewModel = new DriversViewModel();
             this.DataContext = _viewModel;
+            this.Loaded += DriversView_Loaded;
+        }
+
+        private async void DriversView_Loaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            if (_viewModel.Drivers.Count == 0)
+            {
+                await _viewModel.ScanAsync();
+            }
+        }
+
+        private async void HardwareButton_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            await _viewModel.ScanHardwareAsync();
         }
 
         private async void ScanButton_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)

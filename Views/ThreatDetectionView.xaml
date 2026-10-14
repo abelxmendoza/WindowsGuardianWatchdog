@@ -1,26 +1,26 @@
 <Page x:Class="WindowsGuardianWatchdog.Views.ThreatDetectionView"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:guide="using:WindowsGuardianWatchdog.Components">
     <!-- Threat Detection View -->
     <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
         <StackPanel Padding="20" Spacing="20" Background="{StaticResource BackgroundBlackBrush}">
-            <StackPanel Orientation="Horizontal" Spacing="15" Margin="0,0,0,20">
-                <Image Source="ms-appx:///Resources/LogoMark.png" Width="64" Height="64" Stretch="UniformToFill"/>
-                <TextBlock Text="Threat Detection (Blue Team)" FontSize="32" FontWeight="Bold" Foreground="{StaticResource PrimaryPurpleBrush}" VerticalAlignment="Center"/>
-            </StackPanel>
-            
-            <Button Content="Run Threat Hunt" Click="ThreatHuntButton_Click" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Left"/>
+            <guide:PageGuide Title="Check for risks" Priority="Optional"
+                             Summary="Looks through this PC for signs of a problem, then compares your apps with a public list of known issues."
+                             Why="Most people do not need this every day. Use it if something feels wrong, or after you install an unfamiliar program. The public list shows titles and dates only. It does not download instructions for breaking into a computer."/>
+
+            <Button Content="Look through this PC" Click="ThreatHuntButton_Click" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Left"/>
 
             <TextBlock x:Name="ThreatReportText" Text="No threat hunt performed yet." Foreground="{StaticResource TextGrayBrush}" Margin="0,20,0,0"/>
 
             <Border Style="{StaticResource SectionCardStyle}" Margin="0,10,0,0">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Exploit-DB" Style="{StaticResource SectionTitleTextStyle}"/>
-                    <TextBlock Text="Public vulnerability catalog. The app stores titles, dates, platforms, and CVE numbers. It does not download exploit code." Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap"/>
+                    <TextBlock Text="Public list of known issues" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Importance: informational. A match means a product you have has a publicly listed issue. It does not mean the PC is infected. Update that app from the Update apps page." Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap"/>
                     <TextBlock x:Name="CatalogStatusText" Text="Catalog not loaded." Foreground="{StaticResource AccentCyanBrush}" TextWrapping="Wrap"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Button x:Name="RefreshCatalogButton" Content="Update Exploit-DB catalog" Click="RefreshCatalogButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
-                        <Button x:Name="MatchPcButton" Content="Check this PC" Click="MatchPcButton_Click" Style="{StaticResource AccentButtonStyle}"/>
+                        <Button x:Name="RefreshCatalogButton" Content="Download the latest list" Click="RefreshCatalogButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+                        <Button x:Name="MatchPcButton" Content="Compare with this PC" Click="MatchPcButton_Click" Style="{StaticResource AccentButtonStyle}"/>
                     </StackPanel>
                     <Grid ColumnSpacing="10">
                         <Grid.ColumnDefinitions>

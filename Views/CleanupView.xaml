@@ -1,18 +1,27 @@
 <Page x:Class="WindowsGuardianWatchdog.Views.CleanupView"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:guide="using:WindowsGuardianWatchdog.Components">
     <!-- System Cleanup View -->
     <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
         <StackPanel Padding="20" Spacing="20" Background="{StaticResource BackgroundBlackBrush}">
-            <StackPanel Orientation="Horizontal" Spacing="15" Margin="0,0,0,20">
-                <Image Source="ms-appx:///Resources/LogoMark.png" Width="64" Height="64" Stretch="UniformToFill"/>
-                <TextBlock Text="System Cleanup" FontSize="32" FontWeight="Bold" Foreground="{StaticResource PrimaryPurpleBrush}" VerticalAlignment="Center"/>
-            </StackPanel>
-            
+            <guide:PageGuide Title="Free up space" Rank="3" Priority="Recommended"
+                             Summary="Looks for leftover browser files, temporary files, and old search history."
+                             Why="This is the cleanup that usually makes a PC feel lighter. Bookmarks, saved passwords, and your documents are left alone. Close Chrome, Edge, Firefox, and the other browsers first so their history can be cleared."/>
+
+            <Border Style="{StaticResource SectionCardStyle}">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="What the buttons do" FontWeight="SemiBold"/>
+                    <TextBlock Text="1. Look first — makes the list. Nothing is deleted." Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap"/>
+                    <TextBlock Text="2. Preview — walks through the same list and still deletes nothing." Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap"/>
+                    <TextBlock Text="3. Clean up now — deletes the leftover files. Do this only after you have looked at the list." Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
             <StackPanel Orientation="Horizontal" Spacing="10">
-                <Button x:Name="ScanButton" Content="Scan" Click="ScanButton_Click" Style="{StaticResource AccentButtonStyle}"/>
-                <Button x:Name="DryRunButton" Content="Dry Run" Click="DryRunButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
-                <Button x:Name="CleanButton" Content="Clean" Click="CleanButton_Click" Style="{StaticResource DangerButtonStyle}"/>
+                <Button x:Name="ScanButton" Content="1. Look first" Click="ScanButton_Click" Style="{StaticResource AccentButtonStyle}"/>
+                <Button x:Name="DryRunButton" Content="2. Preview" Click="DryRunButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+                <Button x:Name="CleanButton" Content="3. Clean up now" Click="CleanButton_Click" Style="{StaticResource DangerButtonStyle}"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Spacing="20">
@@ -28,7 +37,8 @@
                 <TextBlock x:Name="ItemCountText" Text="{Binding CleanupItems.Count}" Foreground="{StaticResource AccentCyanBrush}"/>
             </StackPanel>
 
-            <TextBlock Text="Cleanup Items" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,20,0,0"/>
+            <TextBlock Text="What can be removed" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,20,0,0"/>
+            <TextBlock Text="Priority: browser cache and search history help the most. Temporary files are next. Nothing here is a personal document." Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap"/>
             <ListView x:Name="CleanupItemsListView" Height="400" ItemsSource="{Binding CleanupItems}" Background="{StaticResource BackgroundNoiseBrush}" Foreground="{StaticResource TextPrimaryBrush}">
                 <ListView.ItemTemplate>
                     <DataTemplate>

@@ -1,17 +1,17 @@
 <Page x:Class="WindowsGuardianWatchdog.Views.MLInsightsView"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:guide="using:WindowsGuardianWatchdog.Components">
     <!-- ML Security Insights View -->
     <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
         <StackPanel Padding="20" Spacing="20" Background="{StaticResource BackgroundBlackBrush}">
-            <StackPanel Orientation="Horizontal" Spacing="15" Margin="0,0,0,20">
-                <Image Source="ms-appx:///Resources/LogoMark.png" Width="64" Height="64" Stretch="UniformToFill"/>
-                <TextBlock Text="ML Security Insights" FontSize="32" FontWeight="Bold" Foreground="{StaticResource PrimaryPurpleBrush}" VerticalAlignment="Center"/>
-            </StackPanel>
+            <guide:PageGuide Title="Unusual activity" Priority="Advanced"
+                             Summary="Looks for behavior that does not match the way this PC usually runs."
+                             Why="This is a second opinion, not a verdict. Something unusual can be a new app you just installed. If a result worries you, update your apps and run the protection checkup."/>
 
             <StackPanel Orientation="Horizontal" Spacing="10">
                 <Button Content="Refresh" Click="RefreshButton_Click" Style="{StaticResource AccentButtonStyle}"/>
-                <Button Content="Run Analysis" Click="RunAnalysisButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+                <Button Content="Look for unusual activity" Click="RunAnalysisButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
             </StackPanel>
 
             <TextBlock x:Name="StatusText" Text="{Binding StatusText}" Foreground="{StaticResource AccentCyanBrush}" Margin="0,10,0,0"/>

@@ -1,23 +1,40 @@
 <Page x:Class="WindowsGuardianWatchdog.Views.SecurityMonitorView"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:guide="using:WindowsGuardianWatchdog.Components">
     <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
         <StackPanel Padding="20" Spacing="20" Background="{StaticResource BackgroundBlackBrush}">
-            <StackPanel Orientation="Horizontal" Spacing="15" Margin="0,0,0,20">
-                <Image Source="ms-appx:///Resources/LogoMark.png" Width="64" Height="64" Stretch="UniformToFill"/>
-                <TextBlock Text="Security Monitor" FontSize="32" FontWeight="Bold" Foreground="{StaticResource PrimaryPurpleBrush}" VerticalAlignment="Center"/>
-            </StackPanel>
-            
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <Button x:Name="StartButton" Content="Start Monitoring" Click="StartButton_Click" Style="{StaticResource AccentButtonStyle}"/>
-                <Button x:Name="StopButton" Content="Stop Monitoring" Click="StopButton_Click" Style="{StaticResource DangerButtonStyle}" IsEnabled="False"/>
-                <Button Content="Refresh processes" Click="RefreshButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
-                <Button Content="End selected" Click="EndSelectedButton_Click" Style="{StaticResource DangerButtonStyle}"/>
-                <Button Content="End nonessential" Click="EndNonessentialButton_Click" Style="{StaticResource DangerButtonStyle}"/>
-            </StackPanel>
-            <TextBlock x:Name="ProcessStatusText" Text="Loading processes…" Foreground="{StaticResource AccentCyanBrush}"/>
+            <guide:PageGuide Title="What is running" Rank="6" Priority="Optional"
+                             Summary="A list of every program open on this PC, with how important it is."
+                             Why="Use this when the PC feels slow. Protected means Windows needs it, so leave it alone. Normal means you can close it if you know what it is. Close extras stops the normal ones and leaves Windows, virus protection, and this app running."/>
 
-            <TextBlock Text="All processes" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="StartButton" Content="Watch for changes" Click="StartButton_Click" Style="{StaticResource AccentButtonStyle}"/>
+                <Button x:Name="StopButton" Content="Stop watching" Click="StopButton_Click" Style="{StaticResource DangerButtonStyle}" IsEnabled="False"/>
+                <Button Content="Refresh the list" Click="RefreshButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                <Button Content="Close selected" Click="EndSelectedButton_Click" Style="{StaticResource DangerButtonStyle}"/>
+                <Button Content="Close extras" Click="EndNonessentialButton_Click" Style="{StaticResource DangerButtonStyle}"/>
+            </StackPanel>
+            <TextBlock x:Name="ProcessStatusText" Text="Loading programs…" Foreground="{StaticResource AccentCyanBrush}" TextWrapping="Wrap"/>
+
+            <TextBlock Text="Every program, busiest first" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+            <Grid ColumnSpacing="12" Padding="10,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="70"/>
+                    <ColumnDefinition Width="180"/>
+                    <ColumnDefinition Width="110"/>
+                    <ColumnDefinition Width="90"/>
+                    <ColumnDefinition Width="110"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Number" Style="{StaticResource EyebrowTextStyle}"/>
+                <TextBlock Grid.Column="1" Text="Program" Style="{StaticResource EyebrowTextStyle}"/>
+                <TextBlock Grid.Column="2" Text="Importance" Style="{StaticResource EyebrowTextStyle}"/>
+                <TextBlock Grid.Column="3" Text="Urgency" Style="{StaticResource EyebrowTextStyle}"/>
+                <TextBlock Grid.Column="4" Text="Memory" Style="{StaticResource EyebrowTextStyle}"/>
+                <TextBlock Grid.Column="5" Text="Where it lives" Style="{StaticResource EyebrowTextStyle}"/>
+            </Grid>
+            <TextBlock Text="Importance: Protected is required by Windows. Normal can be closed. Urgency is how much attention Windows is giving that program. Memory is how much of the PC it is using right now." Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap"/>
             <ListView x:Name="ProcessesListView" Height="520" SelectionMode="Multiple" Background="{StaticResource BackgroundNoiseBrush}" Foreground="{StaticResource TextPrimaryBrush}">
                 <ListView.ItemTemplate>
                     <DataTemplate>

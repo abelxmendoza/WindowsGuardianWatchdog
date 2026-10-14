@@ -1,18 +1,18 @@
 <Page x:Class="WindowsGuardianWatchdog.Views.FileIntegrityView"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:guide="using:WindowsGuardianWatchdog.Components">
     <!-- File Integrity Monitor View -->
     <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
         <StackPanel Padding="20" Spacing="20" Background="{StaticResource BackgroundBlackBrush}">
-            <StackPanel Orientation="Horizontal" Spacing="15" Margin="0,0,0,20">
-                <Image Source="ms-appx:///Resources/LogoMark.png" Width="64" Height="64" Stretch="UniformToFill"/>
-                <TextBlock Text="File Integrity Monitor" FontSize="32" FontWeight="Bold" Foreground="{StaticResource PrimaryPurpleBrush}" VerticalAlignment="Center"/>
-            </StackPanel>
+            <guide:PageGuide Title="Watch folders" Priority="Advanced"
+                             Summary="Tell the app which folders matter. It will notice if a file there changes."
+                             Why="Use this for a folder you want left alone, such as tax documents. It does not watch the whole PC, so you choose the folders."/>
             
             <StackPanel Spacing="10">
-                <TextBlock Text="Monitored Paths" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
-                <TextBox x:Name="PathTextBox" PlaceholderText="Enter path to monitor (e.g., C:\Windows\System32)" Style="{StaticResource DarkTextBoxStyle}"/>
-                <Button Content="Add Path" Click="AddPathButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+                <TextBlock Text="Folders being watched" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                <TextBox x:Name="PathTextBox" PlaceholderText="A folder to watch, for example C:\Users\you\Documents" Style="{StaticResource DarkTextBoxStyle}"/>
+                <Button Content="Watch this folder" Click="AddPathButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
                 
                 <Button Content="Create Baseline" Click="CreateBaselineButton_Click" Style="{StaticResource AccentButtonStyle}" Margin="0,10,0,0"/>
                 <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,10,0,0">
