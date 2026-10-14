@@ -71,7 +71,10 @@ namespace WindowsGuardianWatchdog.Core
                     Path = GetProcessPath(p),
                     StartTime = GetProcessStartTime(p),
                     MemoryUsage = p.WorkingSet64,
-                    CpuTime = GetCpuTime(p)
+                    CpuTime = GetCpuTime(p),
+                    PriorityText = ProcessInfo.ReadPriority(p),
+                    Importance = ProcessInfo.DescribeImportance(p),
+                    IsProtected = ProcessInfo.IsProtectedProcess(p.ProcessName) || p.Id == Environment.ProcessId
                 })
                 .ToList();
 
@@ -259,7 +262,67 @@ namespace WindowsGuardianWatchdog.Core
         public TimeSpan CpuTime { get; set; }
         
         // WinUI 3 compatible formatted property (replaces StringFormat)
-        public string MemoryUsageText => $"{MemoryUsage / 1024:N0} KB";
+        public string MemoryUsageText => FormatSize(MemoryUsage);
+        public string PriorityText { get; set; } = "Normal";
+        public string Importance { get; set; } = "User";
+        public bool IsProtected { get; set; }
+
+        public static bool IsProtectedProcess(string processName)
+        {
+            return ProtectedNames.Contains(processName);
+        }
+
+        public static string ReadPriority(Process process)
+        {
+            try
+            {
+                return process.PriorityClass.ToString();
+            }
+            catch
+            {
+                return "System";
+            }
+        }
+
+        public static string DescribeImportance(Process process)
+        {
+            if (ProtectedNames.Contains(process.ProcessName) || process.Id == Environment.ProcessId)
+            {
+                return "Protected";
+            }
+
+            try
+            {
+                return process.PriorityClass switch
+                {
+                    ProcessPriorityClass.RealTime or ProcessPriorityClass.High => "High",
+                    ProcessPriorityClass.AboveNormal => "Above normal",
+                    ProcessPriorityClass.BelowNormal or ProcessPriorityClass.Idle => "Background",
+                    _ => "Normal"
+                };
+            }
+            catch
+            {
+                return "System";
+            }
+        }
+
+        private static string FormatSize(long bytes)
+        {
+            if (bytes >= 1024L * 1024 * 1024) return $"{bytes / 1024d / 1024 / 1024:0.0} GB";
+            if (bytes >= 1024L * 1024) return $"{bytes / 1024d / 1024:0.0} MB";
+            return $"{bytes / 1024d:0} KB";
+        }
+
+        private static readonly HashSet<string> ProtectedNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "System", "Registry", "Idle", "Secure System", "Memory Compression",
+            "smss", "csrss", "wininit", "services", "lsass", "winlogon", "dwm",
+            "fontdrvhost", "svchost", "LsaIso", "SecurityHealthService", "MsMpEng",
+            "sihost", "ctfmon", "RuntimeBroker", "explorer", "SearchHost",
+            "StartMenuExperienceHost", "ShellExperienceHost", "TextInputHost",
+            "WindowsGuardianWatchdog"
+        };
     }
 
     public class SecurityAlert

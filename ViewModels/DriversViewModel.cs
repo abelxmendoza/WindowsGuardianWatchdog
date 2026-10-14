@@ -65,18 +65,11 @@ namespace WindowsGuardianWatchdog.ViewModels
                         Status = driver.Status.ToString()
                     };
 
-                    // Check for updates
-                    var hasUpdate = await _updateChecker.IsUpdateAvailableAsync(driver);
-                    if (hasUpdate)
-                    {
-                        vm.Status = "Outdated";
-                        vm.IsUpdateAvailable = true;
-                    }
-
+                    vm.Status = driver.IsSigned ? "Signed" : "Unsigned";
                     Drivers.Add(vm);
                 }
 
-                StatusText = $"Found {Drivers.Count} drivers ({OutdatedCount} outdated)";
+                StatusText = $"Found {Drivers.Count} drivers";
             }
             catch (Exception ex)
             {
@@ -88,12 +81,68 @@ namespace WindowsGuardianWatchdog.ViewModels
             }
         }
 
+        public async Task CheckForUpdatesAsync()
+        {
+            if (Drivers.Count == 0)
+            {
+                await ScanAsync();
+            }
+
+            IsScanning = true;
+            StatusText = "Asking Windows Update for newer drivers…";
+            try
+            {
+                var titles = await _updateChecker.FindDriverUpdateTitlesAsync();
+                foreach (var driver in Drivers)
+                {
+                    var match = titles.Any(title => title.Contains(driver.DeviceName, StringComparison.OrdinalIgnoreCase) && driver.DeviceName.Length > 3);
+                    driver.IsUpdateAvailable = match;
+                    if (match) driver.Status = "Update available";
+                }
+
+                StatusText = titles.Count == 0
+                    ? "Windows Update has no newer drivers."
+                    : $"Windows Update has {titles.Count} driver update{(titles.Count == 1 ? "" : "s")}.";
+            }
+            catch (Exception ex)
+            {
+                StatusText = ex.Message;
+            }
+            finally
+            {
+                IsScanning = false;
+            }
+        }
+
         public async Task UpdateDriverAsync(DriverViewModel driver)
         {
-            StatusText = $"Updating {driver.DeviceName}...";
-            // TODO: Implement driver update logic
-            await Task.Delay(1000); // Placeholder
-            StatusText = "Update completed";
+            StatusText = $"Installing driver updates from Windows Update for {driver.DeviceName}. Approve the administrator prompt.";
+            await InstallAvailableUpdatesAsync();
+        }
+
+        public async Task InstallAvailableUpdatesAsync()
+        {
+            IsScanning = true;
+            StatusText = "Installing driver updates from Windows Update. Approve the administrator prompt.";
+            try
+            {
+                var result = await _updateChecker.InstallDriverUpdatesAsync();
+                StatusText = result.Cancelled
+                    ? "Driver update was cancelled."
+                    : result.Output.Contains("DRV|NONE", StringComparison.Ordinal)
+                        ? "Windows Update has no newer drivers."
+                        : result.Output.Contains("|True", StringComparison.Ordinal)
+                            ? "Driver updates installed. Restart this PC to finish."
+                            : result.Success ? "Driver updates finished." : "Driver update finished with errors.";
+            }
+            catch (Exception ex)
+            {
+                StatusText = ex.Message;
+            }
+            finally
+            {
+                IsScanning = false;
+            }
         }
 
         private void Installer_ProgressUpdated(object? sender, DriverInstallProgress progress)
@@ -105,16 +154,29 @@ namespace WindowsGuardianWatchdog.ViewModels
         }
     }
 
-    public class DriverViewModel
+    public class DriverViewModel : ViewModelBase
     {
+        private string _status = string.Empty;
+        private bool _isUpdateAvailable;
+
         public string DeviceId { get; set; } = string.Empty;
         public string DeviceName { get; set; } = string.Empty;
         public string DriverVersion { get; set; } = string.Empty;
         public string DriverDate { get; set; } = string.Empty;
         public string Provider { get; set; } = string.Empty;
         public bool IsSigned { get; set; }
-        public string Status { get; set; } = string.Empty;
-        public bool IsUpdateAvailable { get; set; }
+
+        public string Status
+        {
+            get => _status;
+            set => SetProperty(ref _status, value);
+        }
+
+        public bool IsUpdateAvailable
+        {
+            get => _isUpdateAvailable;
+            set => SetProperty(ref _isUpdateAvailable, value);
+        }
     }
 }
 

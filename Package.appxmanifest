@@ -14,11 +14,11 @@
     <DisplayName>Windows Guardian Watchdog</DisplayName>
     <PublisherDisplayName>Windows Guardian Watchdog</PublisherDisplayName>
     <Logo>Resources\Logo.png</Logo>
-    <Description>Enterprise-Grade Security Monitoring and System Maintenance for Windows</Description>
+    <Description>Local security monitoring, app updates, and PC hardening for Windows. No account and no cloud telemetry.</Description>
   </Properties>
 
   <Dependencies>
-    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.19041.0" />
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
   </Dependencies>
 
   <Resources>

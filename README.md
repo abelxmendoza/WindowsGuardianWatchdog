@@ -112,34 +112,18 @@ dotnet build
 dotnet run
 ```
 
-## Creating Distribution Packages
+## Creating a download
 
-### Standard ZIP Package (Recommended)
+Users should receive one signed MSIX, not a zip of loose files. Windows checks that signature and shows the publisher name before installation.
+
 ```powershell
-.\BuildInstaller.ps1
+$env:WG_SIGNING_PASSWORD = "<password>"
+.\Publish-Release.ps1 -CertificatePath C:\secure\codesign.pfx -DownloadBaseUrl "https://github.com/<owner>/<repo>/releases/download/v1.0.0"
 ```
-Creates a ZIP file with installer script in `dist\WindowsGuardianWatchdog-v1.0.0.zip`
 
-### MSIX Package (Modern Windows App)
-```powershell
-# Validate and create an unsigned package
-.\CreateMSIXPackage.ps1
+The files are written to `dist\release`. The certificate has to come from a public certificate authority or Microsoft Trusted Signing. A self-signed certificate does not make Windows or Microsoft trust the app.
 
-# Create a production package signed with a trusted code-signing certificate
-.\CreateMSIXPackage.ps1 -CertificatePath C:\secure\codesigning.pfx -CertificatePassword $env:WG_SIGNING_PASSWORD
-```
-Creates an MSIX package in `dist\msix\WindowsGuardianWatchdog.msix`
-and verifies its signature when a certificate is supplied. Requires the Windows SDK.
-Keep certificates and passwords outside the repository. A self-signed certificate is
-only suitable for local testing and does not establish Smart App Control reputation.
-
-### Portable Package (Self-Contained)
-```powershell
-.\CreatePortablePackage.ps1
-```
-Creates a portable ZIP with .NET runtime included in `dist\WindowsGuardianWatchdog-Portable-v1.0.0.zip`
-
-See [DISTRIBUTION.md](DISTRIBUTION.md) for detailed distribution instructions.
+See [DISTRIBUTION.md](DISTRIBUTION.md) for the checksum check, GitHub Release secrets, and Microsoft Store submission.
 
 ## Installation
 

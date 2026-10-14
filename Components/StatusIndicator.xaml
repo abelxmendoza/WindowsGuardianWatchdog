@@ -1,12 +1,11 @@
 <UserControl x:Class="WindowsGuardianWatchdog.Components.StatusIndicator"
+             x:Name="Root"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <StackPanel Orientation="Horizontal" Spacing="10">
-        <Ellipse Width="12" Height="12" 
-                 Fill="{Binding IsEnabled, Converter={StaticResource BoolToStatusColorConverter}}"/>
-        <TextBlock Text="{Binding Text}" 
+        <Ellipse x:Name="StatusDot" Width="12" Height="12" Fill="#FF6A21"/>
+        <TextBlock x:Name="Label" Text=""
                    Foreground="{StaticResource TextPrimaryBrush}"
                    VerticalAlignment="Center"/>
     </StackPanel>
 </UserControl>
-

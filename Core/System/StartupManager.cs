@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Win32;
 using System.IO;
 using System.Threading.Tasks;
+using WindowsGuardianWatchdog.Core.Scripting;
 
 namespace WindowsGuardianWatchdog.Core.Systems
 {
@@ -15,17 +16,11 @@ namespace WindowsGuardianWatchdog.Core.Systems
             {
                 var items = new List<StartupItem>();
 
-                // Registry Run keys
                 ScanRegistryStartup(items, Registry.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\Run", "Current User");
                 ScanRegistryStartup(items, Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\Run", "All Users");
                 ScanRegistryStartup(items, Registry.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\RunOnce", "Current User (Once)");
                 ScanRegistryStartup(items, Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\RunOnce", "All Users (Once)");
-
-                // Startup folders
                 ScanStartupFolders(items);
-
-                // Scheduled tasks
-                ScanScheduledTasks(items);
 
                 return items;
             });
@@ -95,74 +90,67 @@ namespace WindowsGuardianWatchdog.Core.Systems
             }
         }
 
-        private void ScanScheduledTasks(List<StartupItem> items)
+        private static bool TryGetRegistryTarget(string location, out RegistryKey baseKey, out string subKey)
         {
-            try
+            switch (location)
             {
-                var startInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "schtasks",
-                    Arguments = "/query /fo LIST /v",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                using var process = System.Diagnostics.Process.Start(startInfo);
-                if (process != null)
-                {
-                    var output = process.StandardOutput.ReadToEnd();
-                    process.WaitForExit();
-                    
-                    // Parse scheduled tasks output
-                    // This is simplified - full implementation would parse the output properly
-                }
-            }
-            catch
-            {
-                // Handle errors
+                case "Current User":
+                    baseKey = Registry.CurrentUser;
+                    subKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+                    return true;
+                case "Current User (Once)":
+                    baseKey = Registry.CurrentUser;
+                    subKey = @"Software\Microsoft\Windows\CurrentVersion\RunOnce";
+                    return true;
+                case "All Users":
+                    baseKey = Registry.LocalMachine;
+                    subKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+                    return true;
+                case "All Users (Once)":
+                    baseKey = Registry.LocalMachine;
+                    subKey = @"Software\Microsoft\Windows\CurrentVersion\RunOnce";
+                    return true;
+                default:
+                    baseKey = Registry.CurrentUser;
+                    subKey = string.Empty;
+                    return false;
             }
         }
 
         public async Task<bool> DisableAsync(StartupItem item)
         {
-            return await Task.Run(() =>
+            try
             {
-                try
+                if (item.Type == StartupItemType.Registry)
                 {
-                    if (item.Type == StartupItemType.Registry)
+                    if (!TryGetRegistryTarget(item.Location, out var baseKey, out var subKey)) return false;
+                    if (baseKey == Registry.LocalMachine)
                     {
-                        var parts = item.Location.Split('\\');
-                        var baseKey = parts[0] == "Current User" ? Registry.CurrentUser : Registry.LocalMachine;
-                        var subKey = parts[0] == "Current User" 
-                            ? @"Software\Microsoft\Windows\CurrentVersion\Run" 
-                            : @"Software\Microsoft\Windows\CurrentVersion\Run";
+                        var name = item.Name.Replace("'", "''");
+                        var result = await ScriptRunner.RunPowerShellAsync(
+                            $"Remove-ItemProperty -Path 'HKLM:\\{subKey}' -Name '{name}' -ErrorAction Stop",
+                            elevate: true);
+                        return result.Success;
+                    }
 
-                        using var key = baseKey.OpenSubKey(subKey, true);
-                        if (key != null && key.GetValue(item.Name) != null)
-                        {
-                            key.DeleteValue(item.Name, false);
-                            return true;
-                        }
-                    }
-                    else if (item.Type == StartupItemType.StartupFolder)
-                    {
-                        // Rename or move the file
-                        if (File.Exists(item.Command))
-                        {
-                            var disabledPath = item.Command + ".disabled";
-                            File.Move(item.Command, disabledPath);
-                            return true;
-                        }
-                    }
-                }
-                catch
-                {
-                    // Handle errors
+                    using var key = baseKey.OpenSubKey(subKey, writable: true);
+                    if (key?.GetValue(item.Name) == null) return false;
+                    key.DeleteValue(item.Name, throwOnMissingValue: false);
+                    return true;
                 }
 
+                if (item.Type == StartupItemType.StartupFolder && File.Exists(item.Command))
+                {
+                    File.Move(item.Command, item.Command + ".disabled", overwrite: false);
+                    return true;
+                }
+            }
+            catch
+            {
                 return false;
-            });
+            }
+
+            return false;
         }
 
         public async Task<bool> EnableAsync(StartupItem item)

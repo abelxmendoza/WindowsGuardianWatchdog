@@ -10,7 +10,6 @@ namespace WindowsGuardianWatchdog.Core.Hardening
         public bool WasApplied { get; set; }
         public string Category { get; set; } = "General";
         public HardeningSeverity Severity { get; set; } = HardeningSeverity.Medium;
+        public string StatusText { get; set; } = "Unknown";
     }
 }
-
-

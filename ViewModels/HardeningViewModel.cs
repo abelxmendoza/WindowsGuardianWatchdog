@@ -1,12 +1,9 @@
-using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using WindowsGuardianWatchdog.Core.Hardening;
 using WindowsGuardianWatchdog.Services;
-using Microsoft.UI.Dispatching;
 
 namespace WindowsGuardianWatchdog.ViewModels
 {
@@ -15,30 +12,41 @@ namespace WindowsGuardianWatchdog.ViewModels
         private readonly HardeningService _service;
         private bool _isApplying;
         private bool _isRollingBack;
-        private string _statusText = "Ready";
-        private string _defenderStatus = "Checking...";
+        private string _statusText = "Checking this PC…";
+        private string _defenderStatus = "Checking Microsoft Defender…";
+        private string _summaryText = "Reading the current baseline.";
 
         public HardeningViewModel()
         {
             _service = new HardeningService();
+            Rules = new ObservableCollection<HardeningRuleItem>(
+                _service.GetAvailableRules().Select(rule => new HardeningRuleItem
+                {
+                    Id = rule.Id,
+                    Name = rule.Name,
+                    Description = rule.Description,
+                    Category = rule.Category,
+                    Severity = rule.Severity.ToString(),
+                    RequiresAdmin = rule.RequiresAdmin,
+                    IsSelected = rule.Recommended,
+                    Status = "Checking"
+                }));
             Results = new ObservableCollection<HardeningResult>();
-            AvailableRules = new ObservableCollection<HardeningRule>(_service.GetAvailableRules());
-            SelectedRuleIds = new ObservableCollection<string>();
 
-            ApplyHardeningCommand = new RelayCommand(async () => await ApplyHardeningAsync(), () => !_isApplying && !_isRollingBack);
-            RollbackCommand = new RelayCommand(async () => await RollbackAsync(), () => !_isApplying && !_isRollingBack);
-            VerifyCommand = new RelayCommand(async () => await VerifyAsync(), () => !_isApplying && !_isRollingBack);
+            ApplySelectedCommand = new RelayCommand(async () => await ApplyAsync(selectedOnly: true), CanRun);
+            ApplyAllCommand = new RelayCommand(async () => await ApplyAsync(selectedOnly: false), CanRun);
+            VerifyCommand = new RelayCommand(async () => await VerifyAsync(), CanRun);
 
-            _ = LoadDefenderStatusAsync();
+            _ = InitializeAsync();
         }
 
+        public ObservableCollection<HardeningRuleItem> Rules { get; }
         public ObservableCollection<HardeningResult> Results { get; }
-        public ObservableCollection<HardeningRule> AvailableRules { get; }
-        public ObservableCollection<string> SelectedRuleIds { get; }
-
-        public ICommand ApplyHardeningCommand { get; }
-        public ICommand RollbackCommand { get; }
+        public ICommand ApplySelectedCommand { get; }
+        public ICommand ApplyAllCommand { get; }
         public ICommand VerifyCommand { get; }
+
+        public bool IsBusy => _isApplying || _isRollingBack;
 
         public bool IsApplying
         {
@@ -46,9 +54,8 @@ namespace WindowsGuardianWatchdog.ViewModels
             set
             {
                 SetProperty(ref _isApplying, value);
-                ((RelayCommand)ApplyHardeningCommand).RaiseCanExecuteChanged();
-                ((RelayCommand)RollbackCommand).RaiseCanExecuteChanged();
-                ((RelayCommand)VerifyCommand).RaiseCanExecuteChanged();
+                OnPropertyChanged(nameof(IsBusy));
+                RaiseCommands();
             }
         }
 
@@ -58,9 +65,8 @@ namespace WindowsGuardianWatchdog.ViewModels
             set
             {
                 SetProperty(ref _isRollingBack, value);
-                ((RelayCommand)ApplyHardeningCommand).RaiseCanExecuteChanged();
-                ((RelayCommand)RollbackCommand).RaiseCanExecuteChanged();
-                ((RelayCommand)VerifyCommand).RaiseCanExecuteChanged();
+                OnPropertyChanged(nameof(IsBusy));
+                RaiseCommands();
             }
         }
 
@@ -76,77 +82,29 @@ namespace WindowsGuardianWatchdog.ViewModels
             set => SetProperty(ref _defenderStatus, value);
         }
 
-        private async Task LoadDefenderStatusAsync()
+        public string SummaryText
         {
-            var status = await _service.GetDefenderStatusAsync();
-            DefenderStatus = status;
+            get => _summaryText;
+            set => SetProperty(ref _summaryText, value);
         }
 
-        private async Task ApplyHardeningAsync()
-        {
-            IsApplying = true;
-            StatusText = "Applying security hardening...";
-
-            try
-            {
-                List<HardeningResult> results;
-
-                if (SelectedRuleIds.Count > 0)
-                {
-                    results = await _service.ApplySelectedHardeningAsync(SelectedRuleIds);
-                }
-                else
-                {
-                    results = await _service.ApplyAllHardeningAsync();
-                }
-
-                Results.Clear();
-                foreach (var result in results)
-                {
-                    Results.Add(result);
-                }
-
-                var successCount = results.Count(r => r.Success);
-                var totalCount = results.Count;
-                StatusText = $"Applied {successCount} of {totalCount} hardening rules successfully";
-
-                // Refresh defender status
-                await LoadDefenderStatusAsync();
-            }
-            catch (Exception ex)
-            {
-                StatusText = $"Error: {ex.Message}";
-            }
-            finally
-            {
-                IsApplying = false;
-            }
-        }
-
-        private async Task RollbackAsync()
+        public async Task RollbackAsync()
         {
             IsRollingBack = true;
-            StatusText = "Rolling back changes...";
-
+            StatusText = "Rolling back the baseline. Approve the administrator prompt.";
             try
             {
                 var results = await _service.RollbackAllAsync();
-
-                Results.Clear();
-                foreach (var result in results)
-                {
-                    Results.Add(result);
-                }
-
-                var successCount = results.Count(r => r.Success);
-                StatusText = $"Rolled back {successCount} hardening rules";
-
-                // Refresh defender status
-                await LoadDefenderStatusAsync();
+                ShowResults(results);
+                var rolled = results.Count(result => result.Success);
+                StatusText = rolled == 0
+                    ? results.FirstOrDefault()?.Error ?? "Nothing was rolled back."
+                    : $"Rolled back {rolled} control{(rolled == 1 ? "" : "s")}.";
+                await RefreshStateAsync();
             }
             catch (Exception ex)
             {
-                StatusText = $"Error: {ex.Message}";
+                StatusText = ex.Message;
             }
             finally
             {
@@ -154,36 +112,126 @@ namespace WindowsGuardianWatchdog.ViewModels
             }
         }
 
-        private async Task VerifyAsync()
+        private async Task InitializeAsync()
         {
-            IsApplying = true;
-            StatusText = "Verifying hardening status...";
+            await Task.WhenAll(LoadDefenderStatusAsync(), VerifyAsync());
+        }
 
+        private async Task LoadDefenderStatusAsync()
+        {
+            DefenderStatus = await _service.GetDefenderStatusAsync();
+        }
+
+        private async Task ApplyAsync(bool selectedOnly)
+        {
+            var ids = selectedOnly
+                ? Rules.Where(rule => rule.IsSelected).Select(rule => rule.Id).ToList()
+                : Rules.Select(rule => rule.Id).ToList();
+            if (ids.Count == 0)
+            {
+                StatusText = "Select at least one control, or apply the full baseline.";
+                return;
+            }
+
+            IsApplying = true;
+            StatusText = "Applying the baseline. Approve the administrator prompt.";
             try
             {
-                var results = await _service.VerifyAllAsync();
-
-                Results.Clear();
-                foreach (var result in results)
-                {
-                    Results.Add(result);
-                }
-
-                var enabledCount = results.Count(r => r.Success);
-                var totalCount = results.Count;
-                StatusText = $"{enabledCount} of {totalCount} hardening rules are active";
-
-                // Refresh defender status
+                var results = selectedOnly
+                    ? await _service.ApplySelectedHardeningAsync(ids)
+                    : await _service.ApplyAllHardeningAsync();
+                ShowResults(results);
+                var applied = results.Count(result => result.Success);
+                StatusText = $"Applied {applied} of {results.Count} controls.";
+                await RefreshStateAsync();
                 await LoadDefenderStatusAsync();
             }
             catch (Exception ex)
             {
-                StatusText = $"Error: {ex.Message}";
+                StatusText = ex.Message;
             }
             finally
             {
                 IsApplying = false;
             }
+        }
+
+        private async Task VerifyAsync()
+        {
+            if (IsBusy) return;
+            IsApplying = true;
+            StatusText = "Checking which controls are already on…";
+            try
+            {
+                await RefreshStateAsync();
+                StatusText = SummaryText;
+            }
+            catch (Exception ex)
+            {
+                StatusText = ex.Message;
+            }
+            finally
+            {
+                IsApplying = false;
+            }
+        }
+
+        private async Task RefreshStateAsync()
+        {
+            var results = await _service.VerifyAllAsync();
+            foreach (var result in results)
+            {
+                var rule = Rules.FirstOrDefault(item => item.Id == result.RuleId);
+                if (rule != null) rule.Status = result.StatusText;
+            }
+
+            var active = results.Count(result => result.Success);
+            SummaryText = $"{active} of {results.Count} controls are on.";
+        }
+
+        private void ShowResults(IEnumerable<HardeningResult> results)
+        {
+            Results.Clear();
+            foreach (var result in results)
+            {
+                var rule = Rules.FirstOrDefault(item => item.Id == result.RuleId);
+                if (rule != null) rule.Status = result.StatusText;
+                Results.Add(result);
+            }
+        }
+
+        private bool CanRun() => !IsBusy;
+
+        private void RaiseCommands()
+        {
+            ((RelayCommand)ApplySelectedCommand).RaiseCanExecuteChanged();
+            ((RelayCommand)ApplyAllCommand).RaiseCanExecuteChanged();
+            ((RelayCommand)VerifyCommand).RaiseCanExecuteChanged();
+        }
+    }
+
+    public class HardeningRuleItem : ViewModelBase
+    {
+        private bool _isSelected;
+        private string _status = "Checking";
+
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Severity { get; set; } = string.Empty;
+        public bool RequiresAdmin { get; set; }
+
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set => SetProperty(ref _isSelected, value);
+        }
+
+        public string Status
+        {
+            get => _status;
+            set => SetProperty(ref _status, value);
         }
     }
 
@@ -213,4 +261,3 @@ namespace WindowsGuardianWatchdog.ViewModels
         }
     }
 }
-

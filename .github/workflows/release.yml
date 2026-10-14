@@ -1,0 +1,58 @@
+name: Signed release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Read the app version
+        id: version
+        shell: pwsh
+        run: |
+          $project = Get-Content WindowsGuardianWatchdog.csproj -Raw
+          if ($project -notmatch '<Version>([^<]+)</Version>') { throw "The project file has no Version." }
+          "version=$($Matches[1].Trim())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Restore the signing certificate
+        env:
+          CERT_BASE64: ${{ secrets.SIGNING_CERT_BASE64 }}
+        run: |
+          if (-not $env:CERT_BASE64) {
+            throw "Add repository secrets SIGNING_CERT_BASE64 and SIGNING_CERT_PASSWORD. The certificate must come from a public CA or Microsoft Trusted Signing. Do not publish an unsigned build."
+          }
+          $path = Join-Path $env:RUNNER_TEMP "codesign.pfx"
+          [IO.File]::WriteAllBytes($path, [Convert]::FromBase64String($env:CERT_BASE64))
+          "CERT_PATH=$path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build the signed installer
+        env:
+          WG_SIGNING_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
+        run: |
+          $base = "https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.version }}"
+          ./Publish-Release.ps1 -CertificatePath $env:CERT_PATH -DownloadBaseUrl $base
+
+      - name: Publish the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Windows Guardian Watchdog ${{ steps.version.outputs.version }}
+          fail_on_unmatched_files: true
+          body: |
+            Download WindowsGuardianWatchdog.msix and double-click it.
+            Before opening it, compare its SHA256 with SHA256SUMS.txt.
+            Windows shows the publisher from the code-signing certificate. Continue only if that publisher is the one you expect.
+          files: |
+            dist/release/WindowsGuardianWatchdog.msix
+            dist/release/WindowsGuardianWatchdog.appinstaller
+            dist/release/SHA256SUMS.txt
+            dist/release/INSTALL.txt

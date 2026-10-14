@@ -1,0 +1,33 @@
+<Page x:Class="WindowsGuardianWatchdog.Views.FileSearchView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
+        <StackPanel Padding="32" Spacing="16" MaxWidth="1500">
+            <TextBlock Text="File search" Style="{StaticResource PageTitleTextStyle}"/>
+            <TextBlock Text="Search file names on this PC. The user folder is the default. All drives walks every fixed disk and skips folders Windows will not open." Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap"/>
+            <Grid ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="QueryBox" PlaceholderText="File name, for example invoice or report.pdf" Style="{StaticResource DarkTextBoxStyle}"/>
+                <CheckBox x:Name="AllDrivesBox" Grid.Column="1" Content="All drives" VerticalAlignment="Center"/>
+                <Button Grid.Column="2" x:Name="SearchButton" Content="Search files" Click="SearchButton_Click" Style="{StaticResource PrimaryButtonStyle}"/>
+            </Grid>
+            <TextBlock x:Name="StatusText" Text="Enter at least two characters." Foreground="{StaticResource AccentCyanBrush}" TextWrapping="Wrap"/>
+            <ProgressBar x:Name="SearchProgress" IsIndeterminate="True" Visibility="Collapsed"/>
+            <ListView x:Name="ResultsList" Height="520" Background="{StaticResource BackgroundNoiseBrush}">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Padding="8" Spacing="2">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Path}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                            <TextBlock Text="{Binding Detail}" Foreground="{StaticResource TextGrayBrush}" FontSize="12"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

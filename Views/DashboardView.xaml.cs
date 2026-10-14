@@ -107,6 +107,8 @@ namespace WindowsGuardianWatchdog.Views
         }
 
         private void ViewAlertsButton_Click(object sender, RoutedEventArgs e) => Frame.Navigate(typeof(AlertsView));
+        private void OpenUpdatesButton_Click(object sender, RoutedEventArgs e) => Frame.Navigate(typeof(AppUpdatesView));
+        private void OpenHardeningButton_Click(object sender, RoutedEventArgs e) => Frame.Navigate(typeof(HardeningView));
 
         private void AddActivity(string message, string type)
         {

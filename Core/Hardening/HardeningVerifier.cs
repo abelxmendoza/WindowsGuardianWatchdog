@@ -1,119 +1,41 @@
-using System;
-using System.Threading.Tasks;
-using System.Management.Automation;
+using WindowsGuardianWatchdog.Core.Scripting;
 
 namespace WindowsGuardianWatchdog.Core.Hardening
 {
     public static class HardeningVerifier
     {
-        public static async Task<bool> VerifyDefenderBaselineAsync()
-        {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    using var ps = PowerShell.Create();
-                    ps.AddScript("(Get-MpPreference).DisableRealtimeMonitoring");
-                    var result = ps.Invoke();
-                    return result != null && result.Count > 0 && result[0].ToString() == "False";
-                }
-                catch
-                {
-                    return false;
-                }
-            });
-        }
+        public static Task<bool> VerifyDefenderBaselineAsync() =>
+            CheckAsync("if ((Get-MpPreference).DisableRealtimeMonitoring -eq $false) { 'True' } else { 'False' }");
 
-        public static async Task<bool> VerifyPUAProtectionAsync()
-        {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    using var ps = PowerShell.Create();
-                    ps.AddScript("(Get-MpPreference).PUAProtection -eq 'Enabled'");
-                    var result = ps.Invoke();
-                    return result != null && result.Count > 0 && result[0].ToString().Contains("Enabled");
-                }
-                catch
-                {
-                    return false;
-                }
-            });
-        }
+        public static Task<bool> VerifyPUAProtectionAsync() =>
+            CheckAsync("$v = [string](Get-MpPreference).PUAProtection; if ($v -eq '1' -or $v -eq 'Enabled') { 'True' } else { 'False' }");
 
-        public static async Task<bool> VerifyControlledFolderAccessAsync()
-        {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    using var ps = PowerShell.Create();
-                    ps.AddScript("(Get-MpPreference).EnableControlledFolderAccess -eq 'Enabled'");
-                    var result = ps.Invoke();
-                    return result != null && result.Count > 0 && result[0].ToString().Contains("Enabled");
-                }
-                catch
-                {
-                    return false;
-                }
-            });
-        }
+        public static Task<bool> VerifyControlledFolderAccessAsync() =>
+            CheckAsync("$v = [string](Get-MpPreference).EnableControlledFolderAccess; if ($v -eq '1' -or $v -eq 'Enabled') { 'True' } else { 'False' }");
 
-        public static async Task<bool> VerifyASREnabledAsync()
-        {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    using var ps = PowerShell.Create();
-                    ps.AddScript("(Get-MpPreference).AttackSurfaceReductionRules_Ids");
-                    var result = ps.Invoke();
-                    return result != null && result.Count > 0;
-                }
-                catch
-                {
-                    return false;
-                }
-            });
-        }
+        public static Task<bool> VerifyASREnabledAsync() =>
+            CheckAsync("$actions = @((Get-MpPreference).AttackSurfaceReductionRules_Actions); if (@($actions | Where-Object { $_ -eq 1 -or $_ -eq 'Enabled' -or $_ -eq 'Block' }).Count -gt 0) { 'True' } else { 'False' }");
 
-        public static async Task<bool> VerifyFirewallEnabledAsync()
-        {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    using var ps = PowerShell.Create();
-                    ps.AddScript("(Get-NetFirewallProfile -Profile Domain,Public,Private).Enabled -contains 'True'");
-                    var result = ps.Invoke();
-                    return result != null && result.Count > 0;
-                }
-                catch
-                {
-                    return false;
-                }
-            });
-        }
+        public static Task<bool> VerifyFirewallEnabledAsync() =>
+            CheckAsync("if (@(Get-NetFirewallProfile -Profile Domain,Public,Private | Where-Object { $_.Enabled -ne $true }).Count -eq 0) { 'True' } else { 'False' }");
 
         public static async Task<string> GetDefenderStatusAsync()
         {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    using var ps = PowerShell.Create();
-                    ps.AddScript("Get-MpComputerStatus | Select-Object -Property AntivirusEnabled,AntispywareEnabled,AMServiceEnabled");
-                    var result = ps.Invoke();
-                    return result != null && result.Count > 0 ? string.Join(",", result.Select(r => r.ToString())) : string.Empty;
-                }
-                catch
-                {
-                    return string.Empty;
-                }
-            });
+            var result = await ScriptRunner.RunPowerShellAsync(
+                """
+                $status = Get-MpComputerStatus
+                "Antivirus: $($status.AntivirusEnabled) · Real-time: $($status.RealTimeProtectionEnabled) · Cloud: $($status.IoavProtectionEnabled) · Signatures: $($status.AntivirusSignatureLastUpdated)"
+                """,
+                elevate: false,
+                timeoutMs: 60000);
+            return string.IsNullOrWhiteSpace(result.Output) ? "Defender status is unavailable." : result.Output.Trim();
+        }
+
+        private static async Task<bool> CheckAsync(string script)
+        {
+            var result = await ScriptRunner.RunPowerShellAsync(script, elevate: false, timeoutMs: 60000);
+            return result.Output.Trim().Equals("True", StringComparison.OrdinalIgnoreCase)
+                || result.Output.Contains("\nTrue", StringComparison.OrdinalIgnoreCase);
         }
     }
 }
-
-

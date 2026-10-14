@@ -31,6 +31,7 @@
     <PackageReference Include="System.Management.Automation" Version="7.4.0" />
     <PackageReference Include="Microsoft.ML" Version="3.0.0" />
     <PackageReference Include="Microsoft.ML.TimeSeries" Version="3.0.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
   </ItemGroup>
 
   <ItemGroup>

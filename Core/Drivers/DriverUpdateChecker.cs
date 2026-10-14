@@ -1,5 +1,4 @@
-using System;
-using System.Threading.Tasks;
+using WindowsGuardianWatchdog.Core.Scripting;
 
 namespace WindowsGuardianWatchdog.Core.Drivers
 {
@@ -7,85 +6,74 @@ namespace WindowsGuardianWatchdog.Core.Drivers
     {
         public async Task<bool> IsUpdateAvailableAsync(DriverInfo driver)
         {
-            return await Task.Run(() =>
-            {
-                // Check Windows Update Catalog
-                if (CheckWindowsUpdateCatalog(driver))
-                {
-                    return true;
-                }
-
-                // Check OEM sources based on provider
-                if (driver.DriverProviderName.Contains("Intel", StringComparison.OrdinalIgnoreCase))
-                {
-                    return CheckIntelUpdates(driver);
-                }
-                else if (driver.DriverProviderName.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
-                {
-                    return CheckNvidiaUpdates(driver);
-                }
-                else if (driver.DriverProviderName.Contains("AMD", StringComparison.OrdinalIgnoreCase))
-                {
-                    return CheckAmdUpdates(driver);
-                }
-
-                return false;
-            });
+            var titles = await FindDriverUpdateTitlesAsync();
+            return Matches(driver, titles);
         }
 
-        private bool CheckWindowsUpdateCatalog(DriverInfo driver)
+        public async Task<IReadOnlyList<string>> FindDriverUpdateTitlesAsync()
         {
-            try
-            {
-                // Use Windows Update API or PowerShell
-                var startInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "powershell",
-                    Arguments = $"-Command \"Get-WindowsDriver -Online | Where-Object {{ $_.Driver -like '*{driver.InfName}*' }}\"",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                using var process = System.Diagnostics.Process.Start(startInfo);
-                if (process != null)
-                {
-                    var output = process.StandardOutput.ReadToEnd();
-                    process.WaitForExit();
-                    return !string.IsNullOrEmpty(output);
+            const string script = """
+                $ErrorActionPreference = 'Stop'
+                $session = New-Object -ComObject Microsoft.Update.Session
+                $searcher = $session.CreateUpdateSearcher()
+                $searcher.Online = $true
+                $result = $searcher.Search("IsInstalled=0 and IsHidden=0 and Type='Driver'")
+                if ($result.Updates.Count -eq 0) { Write-Output 'DRV|NONE'; return }
+                foreach ($update in $result.Updates) {
+                    $title = ([string]$update.Title) -replace '\|','/' -replace '[\r\n]',' '
+                    Write-Output "DRV|$title"
                 }
-            }
-            catch
+                """;
+            var result = await ScriptRunner.RunPowerShellAsync(script, elevate: false, timeoutMs: 10 * 60 * 1000);
+            if (!string.IsNullOrWhiteSpace(result.Output) && result.Output.Contains("DRV|", StringComparison.Ordinal) == false && result.ExitCode != 0)
             {
-                // Handle errors
+                throw new InvalidOperationException(result.Output.Trim());
             }
 
-            return false;
+            return result.Output
+                .Replace("\r", string.Empty)
+                .Split('\n')
+                .Select(line => line.Trim())
+                .Where(line => line.StartsWith("DRV|", StringComparison.Ordinal) && !line.StartsWith("DRV|NONE", StringComparison.Ordinal))
+                .Select(line => line[4..])
+                .Where(title => title.Length > 0)
+                .ToList();
         }
 
-        private bool CheckIntelUpdates(DriverInfo driver)
+        public Task<ScriptResult> InstallDriverUpdatesAsync()
         {
-            // TODO: Integrate with Intel Driver & Support Assistant API
-            return false;
+            const string script = """
+                $ErrorActionPreference = 'Stop'
+                $session = New-Object -ComObject Microsoft.Update.Session
+                $searcher = $session.CreateUpdateSearcher()
+                $searcher.Online = $true
+                $result = $searcher.Search("IsInstalled=0 and IsHidden=0 and Type='Driver'")
+                if ($result.Updates.Count -eq 0) { Write-Output 'DRV|NONE'; return }
+                $collection = New-Object -ComObject Microsoft.Update.UpdateColl
+                foreach ($update in $result.Updates) {
+                    if (-not $update.EulaAccepted) { $update.AcceptEula() | Out-Null }
+                    [void]$collection.Add($update)
+                    Write-Output ("DRV|QUEUED|" + (($update.Title -replace '\|','/')))
+                }
+                $downloader = $session.CreateUpdateDownloader()
+                $downloader.Updates = $collection
+                $download = $downloader.Download()
+                Write-Output "DRV|DOWNLOAD|$($download.ResultCode)"
+                $installer = $session.CreateUpdateInstaller()
+                $installer.Updates = $collection
+                $installed = $installer.Install()
+                Write-Output "DRV|RESULT|$($installed.ResultCode)|$($installed.RebootRequired)"
+                """;
+            return ScriptRunner.RunPowerShellAsync(script, elevate: true, timeoutMs: 90 * 60 * 1000);
         }
 
-        private bool CheckNvidiaUpdates(DriverInfo driver)
+        public static bool Matches(DriverInfo driver, IEnumerable<string> titles)
         {
-            // TODO: Integrate with NVIDIA GeForce Experience or API
-            return false;
+            if (string.IsNullOrWhiteSpace(driver.DeviceName)) return false;
+            var name = driver.DeviceName.Trim();
+            return titles.Any(title => title.Contains(name, StringComparison.OrdinalIgnoreCase));
         }
 
-        private bool CheckAmdUpdates(DriverInfo driver)
-        {
-            // TODO: Integrate with AMD Radeon Software or API
-            return false;
-        }
-
-        public async Task<string?> GetLatestVersionAsync(DriverInfo driver)
-        {
-            // TODO: Implement version checking logic
-            return await Task.FromResult<string?>(null);
-        }
+        public Task<string?> GetLatestVersionAsync(DriverInfo driver) => Task.FromResult<string?>(null);
     }
 }
-

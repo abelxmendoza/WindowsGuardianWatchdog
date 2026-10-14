@@ -1,7 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using Microsoft.Data.Sqlite;
+using Microsoft.Win32;
 
 namespace WindowsGuardianWatchdog.Core.Cleanup
 {
@@ -15,66 +14,28 @@ namespace WindowsGuardianWatchdog.Core.Cleanup
                 Items = new List<CleanupItem>()
             };
 
-            var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            
-            // Chrome
-            ScanBrowserCache(Path.Combine(appData, "Google", "Chrome", "User Data", "Default", "Cache"), "Chrome Cache", result);
-            ScanBrowserCache(Path.Combine(appData, "Google", "Chrome", "User Data", "Default", "Code Cache"), "Chrome Code Cache", result);
-            
-            // Edge
-            ScanBrowserCache(Path.Combine(appData, "Microsoft", "Edge", "User Data", "Default", "Cache"), "Edge Cache", result);
-            ScanBrowserCache(Path.Combine(appData, "Microsoft", "Edge", "User Data", "Default", "Code Cache"), "Edge Code Cache", result);
-            
-            // Firefox
-            var firefoxProfiles = Path.Combine(appData, "Mozilla", "Firefox", "Profiles");
-            if (Directory.Exists(firefoxProfiles))
+            var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var roots = new (string Name, string Path)[]
             {
-                var profiles = Directory.GetDirectories(firefoxProfiles);
-                foreach (var profile in profiles)
-                {
-                    ScanBrowserCache(Path.Combine(profile, "cache2"), "Firefox Cache", result);
-                }
+                ("Chrome", Path.Combine(local, "Google", "Chrome", "User Data")),
+                ("Edge", Path.Combine(local, "Microsoft", "Edge", "User Data")),
+                ("Brave", Path.Combine(local, "BraveSoftware", "Brave-Browser", "User Data")),
+                ("Vivaldi", Path.Combine(local, "Vivaldi", "User Data")),
+                ("Chromium", Path.Combine(local, "Chromium", "User Data")),
+                ("Opera", Path.Combine(local, "Opera Software", "Opera Stable")),
+                ("Opera GX", Path.Combine(local, "Opera Software", "Opera GX Stable"))
+            };
+
+            foreach (var (name, path) in roots)
+            {
+                ScanChromium(name, path, result);
             }
 
-            result.TotalSize = result.Items.Sum(i => i.Size);
+            ScanFirefox(Path.Combine(local, "Mozilla", "Firefox", "Profiles"), result);
+            AddWindowsSearchHistory(result);
+
+            result.TotalSize = result.Items.Sum(item => item.Size);
             return result;
-        }
-
-        private void ScanBrowserCache(string path, string category, CleanupResult result)
-        {
-            try
-            {
-                if (!Directory.Exists(path)) return;
-
-                var files = Directory.GetFiles(path, "*", SearchOption.AllDirectories);
-                
-                foreach (var file in files)
-                {
-                    try
-                    {
-                        var fileInfo = new FileInfo(file);
-                        if (fileInfo.Exists)
-                        {
-                            result.Items.Add(new CleanupItem
-                            {
-                                Path = file,
-                                Category = category,
-                                Size = fileInfo.Length,
-                                LastModified = fileInfo.LastWriteTime,
-                                Type = CleanupItemType.File
-                            });
-                        }
-                    }
-                    catch
-                    {
-                        // Skip inaccessible files
-                    }
-                }
-            }
-            catch
-            {
-                // Handle errors
-            }
         }
 
         public void Execute(CleanupResult result, bool dryRun)
@@ -85,17 +46,179 @@ namespace WindowsGuardianWatchdog.Core.Cleanup
             {
                 try
                 {
-                    if (File.Exists(item.Path))
+                    if (item.Type == CleanupItemType.Registry)
+                    {
+                        ClearWindowsSearchHistory();
+                    }
+                    else if (item.Category.Contains("Firefox history", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ClearFirefoxHistory(item.Path);
+                    }
+                    else if (Directory.Exists(item.Path))
+                    {
+                        DeleteChildren(item.Path);
+                    }
+                    else if (File.Exists(item.Path))
                     {
                         File.Delete(item.Path);
                     }
                 }
                 catch
                 {
-                    // Continue on errors
+                    // A browser that is still open keeps its history database locked.
                 }
+            }
+        }
+
+        private static void ScanChromium(string name, string root, CleanupResult result)
+        {
+            if (!Directory.Exists(root)) return;
+            foreach (var profile in Directory.GetDirectories(root))
+            {
+                var folder = Path.GetFileName(profile);
+                if (folder is "Crashpad" or "ShaderCache" or "GrShaderCache" or "BrowserMetrics" or "Safe Browsing" or "Crowd Deny") continue;
+                AddDirectory(Path.Combine(profile, "Cache"), $"{name} cache", result);
+                AddDirectory(Path.Combine(profile, "Code Cache"), $"{name} code cache", result);
+                AddDirectory(Path.Combine(profile, "GPUCache"), $"{name} GPU cache", result);
+                AddDirectory(Path.Combine(profile, "Service Worker", "CacheStorage"), $"{name} site cache", result);
+                AddFile(Path.Combine(profile, "History"), $"{name} history and search history", result);
+                AddFile(Path.Combine(profile, "History-journal"), $"{name} history and search history", result);
+                AddFile(Path.Combine(profile, "Archived History"), $"{name} history and search history", result);
+            }
+        }
+
+        private static void ScanFirefox(string profilesRoot, CleanupResult result)
+        {
+            if (!Directory.Exists(profilesRoot)) return;
+            foreach (var profile in Directory.GetDirectories(profilesRoot))
+            {
+                AddDirectory(Path.Combine(profile, "cache2"), "Firefox cache", result);
+                AddDirectory(Path.Combine(profile, "startupCache"), "Firefox cache", result);
+                var places = Path.Combine(profile, "places.sqlite");
+                if (File.Exists(places))
+                {
+                    result.Items.Add(new CleanupItem
+                    {
+                        Path = places,
+                        Category = "Firefox history and search history",
+                        Size = new FileInfo(places).Length,
+                        LastModified = File.GetLastWriteTime(places),
+                        Type = CleanupItemType.File,
+                        Description = "History and search terms are cleared. Bookmarks stay."
+                    });
+                }
+            }
+        }
+
+        private static void AddWindowsSearchHistory(CleanupResult result)
+        {
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\WordWheelQuery");
+                if (key == null || key.GetValueNames().Length == 0) return;
+                result.Items.Add(new CleanupItem
+                {
+                    Path = @"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\WordWheelQuery",
+                    Category = "Windows search history",
+                    Size = 0,
+                    LastModified = DateTime.Now,
+                    Type = CleanupItemType.Registry,
+                    Description = "Start and Explorer search history"
+                });
+            }
+            catch
+            {
+                // The search history key may not exist.
+            }
+        }
+
+        private static void AddDirectory(string path, string category, CleanupResult result)
+        {
+            if (!Directory.Exists(path)) return;
+            long size = 0;
+            var count = 0;
+            try
+            {
+                foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+                {
+                    try
+                    {
+                        size += new FileInfo(file).Length;
+                        count++;
+                    }
+                    catch
+                    {
+                        // Skip a locked cache file.
+                    }
+                }
+            }
+            catch
+            {
+                return;
+            }
+
+            if (count == 0) return;
+            result.Items.Add(new CleanupItem
+            {
+                Path = path,
+                Category = category,
+                Size = size,
+                LastModified = Directory.GetLastWriteTime(path),
+                Type = CleanupItemType.Directory,
+                Description = $"{count} files"
+            });
+        }
+
+        private static void AddFile(string path, string category, CleanupResult result)
+        {
+            if (!File.Exists(path)) return;
+            var info = new FileInfo(path);
+            result.Items.Add(new CleanupItem
+            {
+                Path = path,
+                Category = category,
+                Size = info.Length,
+                LastModified = info.LastWriteTime,
+                Type = CleanupItemType.File
+            });
+        }
+
+        private static void DeleteChildren(string directory)
+        {
+            foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+            {
+                try { File.Delete(file); } catch { /* Locked cache files are left in place. */ }
+            }
+        }
+
+        private static void ClearWindowsSearchHistory()
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\WordWheelQuery", writable: true);
+            if (key == null) return;
+            foreach (var name in key.GetValueNames()) key.DeleteValue(name, throwOnMissingValue: false);
+        }
+
+        private static void ClearFirefoxHistory(string placesDatabase)
+        {
+            var builder = new SqliteConnectionStringBuilder
+            {
+                DataSource = placesDatabase,
+                Mode = SqliteOpenMode.ReadWrite,
+                Cache = SqliteCacheMode.Private
+            };
+            using var connection = new SqliteConnection(builder.ConnectionString);
+            connection.Open();
+            using var command = connection.CreateCommand();
+            foreach (var statement in new[]
+            {
+                "DELETE FROM moz_historyvisits;",
+                "DELETE FROM moz_inputhistory;",
+                "DELETE FROM moz_places WHERE id NOT IN (SELECT IFNULL(fk, -1) FROM moz_bookmarks) AND foreign_count = 0;"
+            })
+            {
+                command.CommandText = statement;
+                command.ExecuteNonQuery();
             }
         }
     }
 }
-

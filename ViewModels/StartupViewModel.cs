@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using WindowsGuardianWatchdog.Core.Systems;
 using WindowsGuardianWatchdog.ViewModels;
@@ -86,6 +87,10 @@ namespace WindowsGuardianWatchdog.ViewModels
                     item.IsEnabled = false;
                     StatusText = $"Disabled: {item.Name}";
                 }
+                else
+                {
+                    StatusText = $"Could not disable {item.Name}. All-users startup entries need administrator approval.";
+                }
             }
             catch (Exception ex)
             {
@@ -94,13 +99,27 @@ namespace WindowsGuardianWatchdog.ViewModels
         }
     }
 
-    public class StartupItemViewModel
+    public class StartupItemViewModel : INotifyPropertyChanged
     {
+        private bool _isEnabled;
+
         public string Name { get; set; } = string.Empty;
         public string Command { get; set; } = string.Empty;
         public string Location { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
-        public bool IsEnabled { get; set; }
+
+        public bool IsEnabled
+        {
+            get => _isEnabled;
+            set
+            {
+                if (_isEnabled == value) return;
+                _isEnabled = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEnabled)));
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 }
 

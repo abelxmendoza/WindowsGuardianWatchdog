@@ -1,182 +1,90 @@
-# Distribution Guide
+# Download and trust
 
-## 📦 Available Distribution Methods
+Users install one file: `WindowsGuardianWatchdog.msix`. It already contains the app and the .NET runtime. Windows checks its signature before installation and shows the publisher name from that signature.
 
-Windows Guardian Watchdog can be distributed in multiple formats:
+An unsigned zip is not a public download. Windows SmartScreen and Microsoft treat an unsigned or self-signed file as untrusted.
 
-### 1. **ZIP Package** (Recommended for Manual Installation)
-- Simple extraction and run
-- Requires .NET 8.0 Runtime installed
-- Includes installer script
+## What you give users
 
-### 2. **MSIX Package** (Modern Windows App)
-- Modern Windows app package
-- Can be installed via Microsoft Store or sideloading
-- Automatic updates support
-- Better Windows integration
+After a signed build, `dist\release` contains:
 
-### 3. **Portable Package** (Self-Contained)
-- Includes .NET runtime
-- No installation required
-- Can run from USB drive
-- Larger file size
+- `WindowsGuardianWatchdog.msix` — the installer. Users double-click it.
+- `SHA256SUMS.txt` — the SHA256 they can compare before opening the file.
+- `INSTALL.txt` — the short instructions that go next to the download.
+- `WindowsGuardianWatchdog.appinstaller` — only when a public HTTPS download address is supplied. Opening that file installs the app and checks for updates.
 
-## 🚀 Building Distribution Packages
+Host those files on HTTPS. The usual place is a GitHub Release.
 
-### Quick Build (All Packages)
+## Build a release Windows will trust
+
+Use a code-signing certificate from a public certificate authority, or Microsoft Trusted Signing. Keep the private key out of this repository. Put the PFX password in `WG_SIGNING_PASSWORD`, not in the command line and not in git.
 
 ```powershell
-# Build ZIP installer package
-.\BuildInstaller.ps1
-
-# Build MSIX package (requires Windows SDK)
-.\CreateMSIXPackage.ps1
-
-# Build portable package
-.\CreatePortablePackage.ps1
+$env:WG_SIGNING_PASSWORD = "<password>"
+.\Publish-Release.ps1 `
+  -CertificatePath C:\secure\codesign.pfx `
+  -DownloadBaseUrl "https://github.com/<owner>/<repo>/releases/download/v1.0.0"
 ```
 
-### Step-by-Step
+The build signs `WindowsGuardianWatchdog.exe` and the MSIX with SHA256, timestamps the signature through Microsoft, and runs `signtool verify /pa`. That check is Windows' own trust decision. If the certificate does not chain to a root Windows trusts, the build stops.
 
-#### 1. ZIP Package (Standard Installer)
+A certificate already in the Windows certificate store can be selected by thumbprint:
 
 ```powershell
-.\BuildInstaller.ps1 -Configuration Release -OutputPath .\dist
+.\Publish-Release.ps1 -CertificateThumbprint "<thumbprint>" -DownloadBaseUrl "https://example.com/guardian"
 ```
 
-**Output:**
-- `dist\WindowsGuardianWatchdog-v1.0.0.zip` - Distribution ZIP
-- `dist\WindowsGuardianWatchdog\` - Application files
-- `dist\WindowsGuardianWatchdog\install.bat` - Installer script
-
-**Installation:**
-1. Extract ZIP file
-2. Run `install.bat` (as Administrator) OR
-3. Copy files to desired location and run `WindowsGuardianWatchdog.exe`
-
-#### 2. MSIX Package (Modern App)
+Microsoft Trusted Signing uses the Azure signing library instead of a PFX. The publisher string has to be the certificate subject, copied exactly:
 
 ```powershell
-.\CreateMSIXPackage.ps1 -Configuration Release
+.\Publish-Release.ps1 `
+  -TrustedSigningDlib "C:\tools\Azure.CodeSigning.Dlib.dll" `
+  -TrustedSigningMetadata "C:\secure\trusted-signing.json" `
+  -Publisher "CN=Your Name, O=Your Company, C=US" `
+  -DownloadBaseUrl "https://example.com/guardian"
 ```
 
-**Requirements:**
-- Windows SDK 10.0.26100.0 or later
-- MakeAppx.exe tool
+`-AllowUnsigned` builds a package for a local test only. Do not put that file on a download page.
 
-**Output:**
-- `dist\msix\WindowsGuardianWatchdog.msix` - MSIX package
-- `dist\msix\INSTALL.txt` - Installation instructions
+## What users see
 
-**Installation:**
-```powershell
-# Double-click .msix file OR
-Add-AppxPackage -Path "WindowsGuardianWatchdog.msix"
-```
-
-**Note:** May require enabling "Sideload apps" in Windows Settings:
-- Settings > Apps > Apps & features > Install apps from any source
-
-#### 3. Portable Package (Self-Contained)
+1. They download `WindowsGuardianWatchdog.msix`.
+2. They compare it with the published checksum:
 
 ```powershell
-.\CreatePortablePackage.ps1 -Configuration Release
+certutil -hashfile .\WindowsGuardianWatchdog.msix SHA256
 ```
 
-**Output:**
-- `dist\WindowsGuardianWatchdog-Portable-v1.0.0.zip` - Portable ZIP
-- Includes .NET runtime (~100MB+)
+3. They double-click the MSIX. Windows shows the publisher from the signature.
+4. The first launch asks for administrator approval. The publisher on that prompt is the same certificate. The app needs that approval to read Defender, the firewall, and Windows Update.
 
-**Installation:**
-1. Extract ZIP to any location
-2. Run `WindowsGuardianWatchdog.exe`
-3. No installation required!
+A brand-new publisher can still get a SmartScreen prompt until the signed file has reputation. Microsoft Trusted Signing and the Microsoft Store are the two ways Microsoft builds that reputation. Signing with a self-signed certificate does not.
 
-## 📋 Package Comparison
+## GitHub Release
 
-| Feature | ZIP Package | MSIX Package | Portable Package |
-|---------|-------------|--------------|------------------|
-| **Size** | ~5-10 MB | ~5-10 MB | ~100-150 MB |
-| **.NET Runtime** | Required | Required | Included |
-| **Installation** | Manual | Automatic | None |
-| **Windows Integration** | Good | Excellent | Good |
-| **Auto-Updates** | No | Yes | No |
-| **USB Portable** | Yes | No | Yes |
-| **Store Ready** | No | Yes | No |
-| **Best For** | General use | Modern Windows | USB/Network |
+The workflow `.github/workflows/release.yml` runs when you start it manually from the Actions tab. Add these repository secrets first:
 
-## 🎯 Recommended Distribution
+- `SIGNING_CERT_BASE64` — the PFX, encoded as Base64
+- `SIGNING_CERT_PASSWORD` — the PFX password
 
-### For End Users:
-**ZIP Package** - Simple, familiar, works everywhere
+The workflow refuses to publish when those secrets are missing. It uploads the MSIX, the checksum, the installer text, and the app installer to a GitHub Release named from the version in `WindowsGuardianWatchdog.csproj`.
 
-### For Modern Windows:
-**MSIX Package** - Best Windows integration, auto-updates
+## Microsoft Store
 
-### For Portable Use:
-**Portable Package** - USB drives, network shares, no installation
+Store distribution is the path Microsoft signs itself.
 
-## 📝 Distribution Checklist
+1. Open [Partner Center](https://partner.microsoft.com/dashboard) and reserve the name Windows Guardian Watchdog.
+2. Copy the app's Publisher identity from Partner Center. It looks like `CN=00000000-0000-0000-0000-000000000000`.
+3. Build with `-Publisher` set to that exact value, then upload the MSIX in the submission.
+4. In the listing, use the same description as the package: local security monitoring, with no account and no telemetry. Point the privacy policy at the `Privacy.txt` included in the package, or at a page with that same text.
+5. Submit for certification. Microsoft re-signs the Store package. Users then install it from the Store instead of a sideloaded file.
 
-Before distributing:
+The package already declares the full-trust desktop capability, Windows 10 version 1809 as the minimum, and Windows 11 version 24H2 as the tested version.
 
-- [ ] Build all packages
-- [ ] Test ZIP package installation
-- [ ] Test MSIX package installation
-- [ ] Test portable package
-- [ ] Verify app icon appears correctly
-- [ ] Test desktop shortcut creation
-- [ ] Verify taskbar pinning works
-- [ ] Check all features work after installation
-- [ ] Update version numbers
-- [ ] Create release notes
-
-## 🔐 Code Signing (Optional but Recommended)
-
-For production distribution, consider code signing:
+## Local test build
 
 ```powershell
-# Sign the executable
-signtool sign /f certificate.pfx /p password /t http://timestamp.digicert.com WindowsGuardianWatchdog.exe
+.\Publish-Release.ps1 -AllowUnsigned
 ```
 
-## 📤 Publishing to Microsoft Store
-
-To publish MSIX to Microsoft Store:
-
-1. Create Microsoft Partner Center account
-2. Create app submission
-3. Upload MSIX package
-4. Complete store listing
-5. Submit for certification
-
-## 🌐 GitHub Releases
-
-For GitHub distribution:
-
-1. Create a new release
-2. Upload ZIP packages
-3. Add release notes
-4. Tag version (e.g., v1.0.0)
-
-## 📊 File Sizes (Approximate)
-
-- **ZIP Package**: 5-10 MB
-- **MSIX Package**: 5-10 MB
-- **Portable Package**: 100-150 MB (includes .NET runtime)
-
-## 🛠️ Build Scripts
-
-All build scripts support:
-- `-Configuration` parameter (Debug/Release)
-- `-OutputPath` parameter (custom output directory)
-
-Example:
-```powershell
-.\BuildInstaller.ps1 -Configuration Release -OutputPath .\my-dist
-```
-
----
-
-**Ready to distribute! Choose the package format that best fits your needs.**
-
+Windows will warn or block that file. It is only for checking that the package opens on your own PC.

@@ -26,6 +26,16 @@ namespace WindowsGuardianWatchdog.Views
                 await _viewModel.UpdateDriverAsync(driver);
             }
         }
+
+        private async void CheckButton_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            await _viewModel.CheckForUpdatesAsync();
+        }
+
+        private async void InstallButton_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            await _viewModel.InstallAvailableUpdatesAsync();
+        }
     }
 }
 

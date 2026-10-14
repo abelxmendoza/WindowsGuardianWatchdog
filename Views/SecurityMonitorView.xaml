@@ -11,25 +11,34 @@
             <StackPanel Orientation="Horizontal" Spacing="10">
                 <Button x:Name="StartButton" Content="Start Monitoring" Click="StartButton_Click" Style="{StaticResource AccentButtonStyle}"/>
                 <Button x:Name="StopButton" Content="Stop Monitoring" Click="StopButton_Click" Style="{StaticResource DangerButtonStyle}" IsEnabled="False"/>
+                <Button Content="Refresh processes" Click="RefreshButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                <Button Content="End selected" Click="EndSelectedButton_Click" Style="{StaticResource DangerButtonStyle}"/>
+                <Button Content="End nonessential" Click="EndNonessentialButton_Click" Style="{StaticResource DangerButtonStyle}"/>
             </StackPanel>
+            <TextBlock x:Name="ProcessStatusText" Text="Loading processes…" Foreground="{StaticResource AccentCyanBrush}"/>
 
-            <TextBlock Text="Active Processes" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
-            <ListView x:Name="ProcessesListView" Height="400" Background="{StaticResource BackgroundNoiseBrush}" Foreground="{StaticResource TextPrimaryBrush}">
+            <TextBlock Text="All processes" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+            <ListView x:Name="ProcessesListView" Height="520" SelectionMode="Multiple" Background="{StaticResource BackgroundNoiseBrush}" Foreground="{StaticResource TextPrimaryBrush}">
                 <ListView.ItemTemplate>
                     <DataTemplate>
-                        <StackPanel Orientation="Horizontal" Padding="10" Background="{StaticResource BackgroundCardBrush}" Margin="0,2,0,2">
-                            <TextBlock Text="{Binding Id}" Width="80" Foreground="{StaticResource AccentCyanBrush}" FontFamily="Consolas"/>
-                            <TextBlock Text="{Binding Name}" Width="200" Foreground="{StaticResource TextPrimaryBrush}" Margin="10,0,0,0"/>
-                            <TextBlock Text="{Binding MemoryUsageText}" Width="120" Foreground="{StaticResource TextGrayBrush}" Margin="10,0,0,0"/>
-                            <TextBlock Text="{Binding Path}" Width="300" Foreground="{StaticResource TextSecondaryBrush}" Margin="10,0,0,0" TextTrimming="CharacterEllipsis"/>
-                            <Button Content="End Task" 
-                                    Click="EndTaskButton_Click" 
-                                    Tag="{Binding Id}"
-                                    Style="{StaticResource DangerButtonStyle}"
-                                    Margin="10,0,0,0"
-                                    Padding="10,5"
-                                    FontSize="12"/>
-                        </StackPanel>
+                        <Grid Padding="10" ColumnSpacing="12" Background="{StaticResource BackgroundCardBrush}" Margin="0,2,0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70"/>
+                                <ColumnDefinition Width="180"/>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Id}" Foreground="{StaticResource AccentCyanBrush}" FontFamily="Consolas"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Column="2" Text="{Binding Importance}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock Grid.Column="3" Text="{Binding PriorityText}" Foreground="{StaticResource TextGrayBrush}"/>
+                            <TextBlock Grid.Column="4" Text="{Binding MemoryUsageText}" Foreground="{StaticResource TextGrayBrush}"/>
+                            <TextBlock Grid.Column="5" Text="{Binding Path}" Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                            <Button Grid.Column="6" Content="End" Click="EndTaskButton_Click" Tag="{Binding Id}" Style="{StaticResource DangerButtonStyle}" Padding="10,4" FontSize="12"/>
+                        </Grid>
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>

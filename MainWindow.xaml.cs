@@ -26,7 +26,8 @@ namespace WindowsGuardianWatchdog
             ["Remediation"] = typeof(RemediationView), ["Hardening"] = typeof(HardeningView),
             ["Cleanup"] = typeof(CleanupView), ["Drivers"] = typeof(DriversView),
             ["Startup"] = typeof(StartupView), ["MLInsights"] = typeof(MLInsightsView),
-            ["Alerts"] = typeof(AlertsView), ["Settings"] = typeof(SettingsView)
+            ["Alerts"] = typeof(AlertsView), ["Settings"] = typeof(SettingsView),
+            ["AppUpdates"] = typeof(AppUpdatesView), ["FileSearch"] = typeof(FileSearchView)
         };
 
         public MainWindow()
@@ -61,6 +62,7 @@ namespace WindowsGuardianWatchdog
             AddItem("Security overview", "SecurityOverview", Symbol.View);
             AddItem("Live monitor", "SecurityMonitor", Symbol.Play);
             AddItem("File integrity", "FileIntegrity", Symbol.Document);
+            AddItem("File search", "FileSearch", Symbol.Find);
             AddItem("Alerts & incidents", "Alerts", Symbol.Important);
             AddHeader("INVESTIGATE");
             AddItem("Threat detection", "ThreatDetection", Symbol.Find);
@@ -70,6 +72,7 @@ namespace WindowsGuardianWatchdog
             AddItem("Remediation center", "Remediation", Symbol.Repair);
             AddItem("Security hardening", "Hardening", Symbol.Permissions);
             AddHeader("MAINTAIN");
+            AddItem("App updates", "AppUpdates", Symbol.Sync);
             AddItem("System cleanup", "Cleanup", Symbol.Delete);
             AddItem("Driver manager", "Drivers", Symbol.Download);
             AddItem("Startup manager", "Startup", Symbol.Setting);

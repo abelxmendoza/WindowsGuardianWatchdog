@@ -1,6 +1,3 @@
-using System;
-using System.Threading.Tasks;
-
 namespace WindowsGuardianWatchdog.Core.Hardening
 {
     public class HardeningRule
@@ -8,10 +5,11 @@ namespace WindowsGuardianWatchdog.Core.Hardening
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public Func<Task>? ApplyAsync { get; set; }
-        public Func<Task<bool>>? VerifyAsync { get; set; }
-        public Func<Task>? RollbackAsync { get; set; }
+        public string? ApplyScript { get; set; }
+        public string? RollbackScript { get; set; }
+        public string? VerifyExpression { get; set; }
         public bool RequiresAdmin { get; set; }
+        public bool Recommended { get; set; } = true;
         public string Category { get; set; } = "General";
         public HardeningSeverity Severity { get; set; } = HardeningSeverity.Medium;
     }
@@ -24,5 +22,3 @@ namespace WindowsGuardianWatchdog.Core.Hardening
         Critical
     }
 }
-
-
