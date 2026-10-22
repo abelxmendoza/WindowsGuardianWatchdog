@@ -32,6 +32,7 @@ namespace WindowsGuardianWatchdog
                 }
 
                 _window.Activate();
+                Core.Sensors.BackgroundWatch.Start();
             }
             catch (Exception ex)
             {

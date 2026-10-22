@@ -67,6 +67,34 @@ The wolf mark is used consistently by the executable, Windows taskbar, Desktop s
    - Event log integration
    - Scheduled threat hunts
 
+### Ported from the Mac and Linux apps
+
+7. **Notices and change watch** (Linux `defenses.py` + `tripwires.py`, Mac/Linux incident timeline)
+   - Every five minutes while the app is open, reads the settings an intruder changes first: Windows Firewall,
+     Defender real-time protection and policy, UAC, the Administrators group, local accounts, Run/RunOnce keys,
+     Startup folders, Winlogon Shell/Userinit, debugger (IFEO) hijacks, the hosts file, and the Sticky Keys /
+     Utility Manager swap
+   - The first look records what is normal; after that each change becomes a notice with plain advice and its
+     MITRE ATT&CK technique. A defense is only an alarm when it was on and went off
+   - Repeats fold into one notice; unread notices show as a badge on the Notices menu item
+
+8. **Quarantine** (Mac `quarantine_manager.sh`, Linux `quarantine.py`)
+   - Reversible: the file is copied, hash-checked, renamed so it can't run, made read-only, then removed
+   - Restore puts it back where it came from, never over a file that is there now; delete for good is separate
+   - Windows' own files are refused. "Fix a problem" now quarantines through the same vault
+
+9. **Who can connect** (Linux `exposure_inventory.py`)
+   - Every listening TCP/UDP port with its owning program, and whether only this PC, one network, or any network
+     can reach it, with advice for risky services (Remote Desktop, SMB, WinRM, databases, VNC, Telnet…)
+   - Detection only; nothing is closed
+
+10. **App health** (Mac Self-Check, Linux `self_check.py`)
+    - The app's own files against the hashes recorded for this build, app folder permissions, saved settings that
+      no longer parse (restorable from a daily backup), the change watch's last run, recent crashes, disk space
+
+11. **Reports** (Mac Reports view)
+    - Make a report or weekly summary on demand and reopen earlier ones
+
 ## Architecture
 
 ```

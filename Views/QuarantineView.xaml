@@ -1,0 +1,32 @@
+<Page x:Class="WindowsGuardianWatchdog.Views.QuarantineView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:guide="using:WindowsGuardianWatchdog.Components">
+    <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
+        <StackPanel Padding="20" Spacing="20" Background="{StaticResource BackgroundBlackBrush}">
+            <guide:PageGuide Title="Quarantine" Priority="Optional"
+                             Summary="Files put away so they cannot run. Each one can go back exactly where it came from."
+                             Why="Virus scanners sometimes flag safe files. Quarantine is a holding area instead of a delete: the file is checked, renamed so it can't start, and its original place and fingerprint are kept. Delete for good only once you are sure."/>
+
+            <Border Style="{StaticResource SectionCardStyle}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Put a file away" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap"
+                               Text="In File Explorer, hold Shift, right-click the file and choose &quot;Copy as path&quot;, then paste it here. Windows' own files are refused."/>
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBox x:Name="PathBox" PlaceholderText="C:\Users\you\Downloads\something.exe"/>
+                        <Button Grid.Column="1" Content="Quarantine" Click="QuarantineButton_Click" Style="{StaticResource AccentButtonStyle}"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Content="Refresh" Click="RefreshButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                <Button Content="Open the quarantine folder" Click="OpenFolderButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+            </StackPanel>
+            <TextBlock x:Name="StatusText" Foreground="{StaticResource AccentCyanBrush}" TextWrapping="Wrap"/>
+            <StackPanel x:Name="ItemsPanel" Spacing="10"/>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

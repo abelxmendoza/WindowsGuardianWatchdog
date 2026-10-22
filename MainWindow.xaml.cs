@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using WindowsGuardianWatchdog.Core.Incidents;
 using WindowsGuardianWatchdog.Views;
 using WinRT.Interop;
 
@@ -27,8 +28,11 @@ namespace WindowsGuardianWatchdog
             ["Cleanup"] = typeof(CleanupView), ["Drivers"] = typeof(DriversView),
             ["Startup"] = typeof(StartupView), ["MLInsights"] = typeof(MLInsightsView),
             ["Alerts"] = typeof(AlertsView), ["Settings"] = typeof(SettingsView),
-            ["AppUpdates"] = typeof(AppUpdatesView), ["FileSearch"] = typeof(FileSearchView)
+            ["AppUpdates"] = typeof(AppUpdatesView), ["FileSearch"] = typeof(FileSearchView),
+            ["Quarantine"] = typeof(QuarantineView), ["Exposure"] = typeof(ExposureView),
+            ["AppHealth"] = typeof(AppHealthView), ["Reports"] = typeof(ReportsView)
         };
+        private NavigationViewItem? _noticesItem;
 
         public MainWindow()
         {
@@ -67,7 +71,8 @@ namespace WindowsGuardianWatchdog
             AddHeader("LOOK AROUND");
             AddItem("What is running", "Programs using this PC", "SecurityMonitor", Symbol.Play);
             AddItem("Find a file", "Search by the file name", "FileSearch", Symbol.Find);
-            AddItem("Notices", "Things this app noticed", "Alerts", Symbol.Important);
+            _noticesItem = AddItem("Notices", "Things this app noticed", "Alerts", Symbol.Important);
+            AddItem("Who can connect", "Doors open to the network", "Exposure", Symbol.World);
             AddHeader("A CLOSER LOOK");
             AddItem("Protection details", "A fuller status picture", "SecurityOverview", Symbol.View);
             AddItem("Check for risks", "Known public issues", "ThreatDetection", Symbol.Find);
@@ -75,10 +80,23 @@ namespace WindowsGuardianWatchdog
             AddItem("Protection checkup", "Score the safety switches", "SecurityAudit", Symbol.AllApps);
             AddItem("Unusual activity", "Spot something out of the ordinary", "MLInsights", Symbol.OutlineStar);
             AddItem("Fix a problem", "Common repairs, with a preview", "Remediation", Symbol.Repair);
+            AddItem("Quarantine", "Files put away, can go back", "Quarantine", Symbol.ProtectedDocument);
+            AddItem("Reports", "A written summary to keep", "Reports", Symbol.Page2);
+            AddItem("App health", "This app checking itself", "AppHealth", Symbol.Admin);
 
             _navigation.SelectedItem = dashboard;
             Content = _navigation;
             Navigate("Dashboard");
+
+            EventTimeline.Changed += (_, _) => DispatcherQueue.TryEnqueue(UpdateNoticesBadge);
+            UpdateNoticesBadge();
+        }
+
+        private void UpdateNoticesBadge()
+        {
+            if (_noticesItem == null) return;
+            var unread = EventTimeline.UnreadCount();
+            _noticesItem.InfoBadge = unread == 0 ? null : new InfoBadge { Value = unread };
         }
 
         private NavigationViewItem AddItem(string label, string hint, string tag, Symbol symbol)

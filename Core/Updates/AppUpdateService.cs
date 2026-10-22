@@ -1,3 +1,4 @@
+using System.Text;
 using WindowsGuardianWatchdog.Core.Scripting;
 
 namespace WindowsGuardianWatchdog.Core.Updates
@@ -23,20 +24,23 @@ namespace WindowsGuardianWatchdog.Core.Updates
 
     public static class AppUpdateService
     {
+        // winget returns this when there is nothing to upgrade.
+        private const int WingetNoApplicableUpgrade = unchecked((int)0x8A15002B);
+
+        private static string? _winget;
+
         public static async Task<bool> IsWingetAvailableAsync()
         {
-            var result = await ScriptRunner.RunAsync("winget.exe", "--version", elevate: false, timeoutMs: 20000);
+            var result = await RunWingetAsync("--version", timeoutMs: 20000);
             return result.Success && result.Output.Contains("v", StringComparison.OrdinalIgnoreCase);
         }
 
         public static async Task<IReadOnlyList<AppPackageUpdate>> FindAppUpdatesAsync()
         {
-            var result = await ScriptRunner.RunAsync(
-                "winget.exe",
+            var result = await RunWingetAsync(
                 "upgrade --include-unknown --disable-interactivity --accept-source-agreements",
-                elevate: false,
                 timeoutMs: 180000);
-            if (result.ExitCode != 0 && !result.Output.Contains("---", StringComparison.Ordinal))
+            if (result.ExitCode != 0 && result.ExitCode != WingetNoApplicableUpgrade && !result.Output.Contains("---", StringComparison.Ordinal))
             {
                 throw new InvalidOperationException(string.IsNullOrWhiteSpace(result.Output) ? "winget could not list updates." : result.Output);
             }
@@ -45,22 +49,114 @@ namespace WindowsGuardianWatchdog.Core.Updates
 
         public static async Task<ScriptResult> UpgradeAllAppsAsync()
         {
+            var winget = await RunWingetAsync(
+                "upgrade --all --include-unknown --silent --disable-interactivity --accept-package-agreements --accept-source-agreements",
+                timeoutMs: 45 * 60 * 1000);
+            var store = await UpdateStoreAppsAsync();
+
+            var log = CleanWingetOutput(winget.Output);
+            if (!string.IsNullOrWhiteSpace(store.Output)) log = (log + Environment.NewLine + Environment.NewLine + store.Output).Trim();
+            var exitCode = winget.ExitCode == WingetNoApplicableUpgrade ? 0 : winget.ExitCode;
+            return new ScriptResult { ExitCode = exitCode, Output = log, Cancelled = winget.Cancelled };
+        }
+
+        // Microsoft Store apps are not always visible to winget; this asks the Store to update them itself.
+        // It needs administrator rights and only starts the updates, which then finish in the background.
+        public static async Task<ScriptResult> UpdateStoreAppsAsync()
+        {
             const string script = """
-                function Find-Winget {
-                    $cmd = Get-Command winget.exe -ErrorAction SilentlyContinue
-                    if ($cmd) { return $cmd.Source }
-                    $root = Join-Path $env:ProgramFiles 'WindowsApps'
-                    $package = Get-ChildItem -Path $root -Directory -Filter 'Microsoft.DesktopAppInstaller_*' -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -Last 1
-                    if ($package) {
-                        $exe = Join-Path $package.FullName 'winget.exe'
-                        if (Test-Path -LiteralPath $exe) { return $exe }
-                    }
-                    throw 'winget was not found. Install App Installer from the Microsoft Store.'
+                try {
+                    $scan = Get-CimInstance -Namespace 'root\cimv2\mdm\dmmap' -ClassName 'MDM_EnterpriseModernAppManagement_AppManagement01' -ErrorAction Stop |
+                        Invoke-CimMethod -MethodName UpdateScanMethod -ErrorAction Stop
+                    if ($scan.ReturnValue -eq 0) { 'Microsoft Store: asked the Store to update its apps. They finish in the background.' }
+                    else { "Microsoft Store: the update request returned $($scan.ReturnValue). Open the Store and choose Get updates." }
+                } catch {
+                    "Microsoft Store: could not ask the Store for updates ($($_.Exception.Message)). Open the Store and choose Get updates."
                 }
-                $winget = Find-Winget
-                & $winget upgrade --all --include-unknown --disable-interactivity --accept-package-agreements --accept-source-agreements
                 """;
-            return await ScriptRunner.RunPowerShellAsync(script, elevate: true, timeoutMs: 45 * 60 * 1000);
+            return await ScriptRunner.RunPowerShellAsync(script, elevate: true, timeoutMs: 120000);
+        }
+
+        private static async Task<ScriptResult> RunWingetAsync(string arguments, int timeoutMs)
+        {
+            var winget = _winget ??= FindWinget();
+            if (winget == null)
+            {
+                return new ScriptResult { ExitCode = -1, Output = "winget was not found. Install App Installer from the Microsoft Store." };
+            }
+
+            // winget writes UTF-8. Reading it as the console code page shifts the table columns on names with "…".
+            return await ScriptRunner.RunAsync(winget, arguments, elevate: true, timeoutMs: timeoutMs, outputEncoding: new UTF8Encoding(false));
+        }
+
+        // winget.exe is an alias in the signed-in user's WindowsApps folder. When a different admin approved UAC,
+        // or the alias was never registered, the real file still lives in the App Installer package.
+        private static string? FindWinget()
+        {
+            var candidates = new List<string>();
+            foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? string.Empty).Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+            {
+                candidates.Add(Path.Combine(dir.Trim(), "winget.exe"));
+            }
+            candidates.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "WindowsApps", "winget.exe"));
+
+            foreach (var candidate in candidates)
+            {
+                try
+                {
+                    if (File.Exists(candidate)) return candidate;
+                }
+                catch { /* Skip PATH entries that are not valid paths. */ }
+            }
+
+            try
+            {
+                var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "WindowsApps");
+                return Directory.EnumerateDirectories(root, "Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe")
+                    .Select(dir => Path.Combine(dir, "winget.exe"))
+                    .Where(File.Exists)
+                    .OrderByDescending(PackageVersion)
+                    .FirstOrDefault();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static Version PackageVersion(string wingetPath)
+        {
+            var folder = Path.GetFileName(Path.GetDirectoryName(wingetPath) ?? string.Empty);
+            var parts = folder.Split('_');
+            return parts.Length > 1 && Version.TryParse(parts[1], out var version) ? version : new Version(0, 0);
+        }
+
+        // winget redraws a spinner and progress bars with carriage returns. Keep only what each line ended up as.
+        public static string CleanWingetOutput(string output)
+        {
+            var lines = new List<string>();
+            foreach (var raw in output.Split('\n'))
+            {
+                var line = FinalText(raw).TrimEnd();
+                var trimmed = line.Trim();
+                if (trimmed.Length == 0)
+                {
+                    if (lines.Count > 0 && lines[^1].Length > 0) lines.Add(string.Empty);
+                    continue;
+                }
+                if (trimmed is "-" or "\\" or "|" or "/") continue;
+                if (trimmed.Contains('█') || trimmed.Contains('▒')) continue;
+                lines.Add(line);
+            }
+
+            return string.Join(Environment.NewLine, lines).Trim();
+        }
+
+        private static string FinalText(string line)
+        {
+            line = line.TrimEnd('\r');
+            var cut = line.LastIndexOf('\r');
+            return cut >= 0 ? line[(cut + 1)..] : line;
         }
 
         public static async Task<IReadOnlyList<WindowsUpdateItem>> FindWindowsUpdatesAsync()
@@ -117,7 +213,7 @@ namespace WindowsGuardianWatchdog.Core.Updates
         public static IReadOnlyList<AppPackageUpdate> ParseWingetUpgrades(string output)
         {
             var updates = new List<AppPackageUpdate>();
-            var lines = output.Replace("\r", string.Empty).Split('\n');
+            var lines = output.Split('\n').Select(FinalText).ToArray();
             var header = lines.FirstOrDefault(line => line.Contains("Id", StringComparison.Ordinal) && line.Contains("Version", StringComparison.Ordinal) && line.Contains("Available", StringComparison.Ordinal));
             if (header == null) return updates;
 

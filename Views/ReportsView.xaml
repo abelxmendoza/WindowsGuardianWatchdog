@@ -1,0 +1,22 @@
+<Page x:Class="WindowsGuardianWatchdog.Views.ReportsView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:guide="using:WindowsGuardianWatchdog.Components">
+    <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
+        <StackPanel Padding="20" Spacing="20" Background="{StaticResource BackgroundBlackBrush}">
+            <guide:PageGuide Title="Reports" Priority="Optional"
+                             Summary="A written summary of this PC's protection: the checkup score, what was found, and what to fix. Opens in your web browser and stays on this PC."
+                             Why="Useful to keep a record, to compare month to month, or to hand to someone helping you with the PC."/>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="DailyButton" Content="Make a report now" Click="DailyButton_Click" Style="{StaticResource AccentButtonStyle}"/>
+                <Button x:Name="WeeklyButton" Content="Make a weekly summary" Click="WeeklyButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                <Button Content="Open the reports folder" Click="OpenFolderButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+            </StackPanel>
+            <ProgressBar x:Name="Progress" IsIndeterminate="True" Visibility="Collapsed"/>
+            <TextBlock x:Name="StatusText" Foreground="{StaticResource AccentCyanBrush}" TextWrapping="Wrap"/>
+            <TextBlock Text="Earlier reports" Style="{StaticResource SectionTitleTextStyle}"/>
+            <StackPanel x:Name="ReportsPanel" Spacing="10"/>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
