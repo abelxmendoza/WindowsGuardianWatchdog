@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The app targets WinUI, so the tests compile the platform-neutral scanner sources directly. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>WindowsGuardianWatchdog.Tests</RootNamespace>
+    <!-- Registry and WMI calls compile here but only run on Windows. -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\GlobalUsings.cs" Link="Linked\GlobalUsings.cs" />
+    <Compile Include="..\..\Core\ThreatIntel\ExploitDbCatalog.cs" Link="Linked\ExploitDbCatalog.cs" />
+    <Compile Include="..\..\Core\Vulnerability\*.cs" LinkBase="Linked\Vulnerability" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>
