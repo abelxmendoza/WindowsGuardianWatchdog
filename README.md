@@ -94,8 +94,7 @@ WindowsGuardianWatchdog/
 
 ## Requirements
 
-- Windows 10 version 1809 (build 17763) or later
-- Windows 11
+- Windows 11, or Windows 10 version 2004 (build 19041) or later with update KB5013942 or newer (needed to run the app as administrator)
 - .NET 8.0 or later
 - Administrator privileges (for service installation and some features)
 
@@ -217,6 +216,9 @@ The service runs in the background and:
 - **Administrator Rights**: Required for service installation and some security checks
 
 ## Troubleshooting
+
+### App closes right away or won't open from the taskbar
+Approve the administrator prompt; the app needs it. If the window still never appears, the reason is written to `%ProgramData%\WindowsGuardianWatchdog\crash.log`.
 
 ### Permission Issues
 Some operations require administrator privileges. The application will prompt when needed.
