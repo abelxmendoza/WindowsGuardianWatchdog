@@ -218,6 +218,9 @@ The service runs in the background and:
 
 ## Troubleshooting
 
+### App closes right away or won't open from the taskbar
+Approve the administrator prompt; the app needs it. If the window still never appears, the reason is written to `%LOCALAPPDATA%\WindowsGuardianWatchdog\crash.log`.
+
 ### Permission Issues
 Some operations require administrator privileges. The application will prompt when needed.
 

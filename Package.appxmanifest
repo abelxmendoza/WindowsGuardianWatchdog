@@ -62,6 +62,8 @@
 
   <Capabilities>
     <rescap:Capability Name="runFullTrust" />
+    <!-- app.manifest asks for administrator rights; a packaged app can't elevate without this, so it never opens. -->
+    <rescap:Capability Name="allowElevation" />
     <Capability Name="internetClient" />
   </Capabilities>
 
