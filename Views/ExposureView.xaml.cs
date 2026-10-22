@@ -41,8 +41,11 @@ namespace WindowsGuardianWatchdog.Views
             RiskyText.Text = _report.RiskyCount.ToString();
             RiskyText.Foreground = _report.RiskyCount > 0 ? CardKit.Warning : CardKit.Good;
             var off = _report.FirewallProfiles.Where(p => p.Value == false).Select(p => p.Key).ToList();
-            FirewallText.Text = off.Count == 0 ? "On for every network" : $"Off for {string.Join(", ", off)}";
-            FirewallText.Foreground = off.Count == 0 ? CardKit.Good : CardKit.Critical;
+            var unknown = _report.FirewallProfiles.Where(p => p.Value == null).Select(p => p.Key).ToList();
+            FirewallText.Text = off.Count > 0 ? $"Off for {string.Join(", ", off)}"
+                : unknown.Count > 0 ? $"Could not read {string.Join(", ", unknown)}"
+                : "On for every network";
+            FirewallText.Foreground = off.Count > 0 ? CardKit.Critical : unknown.Count > 0 ? CardKit.Warning : CardKit.Good;
 
             ServicesPanel.Children.Clear();
             var shown = _report.Services.Where(s => ShowLocalSwitch.IsOn || s.Reach != ExposureReach.ThisPcOnly).ToList();

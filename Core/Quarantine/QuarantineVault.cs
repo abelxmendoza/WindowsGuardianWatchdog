@@ -94,13 +94,16 @@ namespace WindowsGuardianWatchdog.Core.Quarantine
                     };
                     System.IO.File.WriteAllText(Path.Combine(folder, "manifest.json"), JsonSerializer.Serialize(entry, Json));
 
+                    var attributes = System.IO.File.GetAttributes(path);
                     try
                     {
-                        System.IO.File.SetAttributes(path, FileAttributes.Normal);
+                        if (attributes.HasFlag(FileAttributes.ReadOnly)) System.IO.File.SetAttributes(path, attributes & ~FileAttributes.ReadOnly);
                         System.IO.File.Delete(path);
                     }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                     {
+                        // Leave the original exactly as it was.
+                        try { if (System.IO.File.Exists(path)) System.IO.File.SetAttributes(path, attributes); } catch (Exception) { }
                         throw new QuarantineException("The file is in use or protected. End the program that uses it (see \"What is running\") and try again.");
                     }
 

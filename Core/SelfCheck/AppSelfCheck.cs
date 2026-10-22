@@ -154,6 +154,19 @@ namespace WindowsGuardianWatchdog.Core.SelfCheck
         private static SelfCheckItem CheckAppFiles()
         {
             var current = CurrentAppBaseline();
+            if (System.IO.File.Exists(BaselinePath) && !TryParse(BaselinePath))
+            {
+                // Don't overwrite it: that would trust whatever is installed now and destroy the evidence.
+                return new SelfCheckItem
+                {
+                    Name = "App files",
+                    Status = CheckStatus.Problem,
+                    Detail = "The record of trusted app files is damaged, so the app files could not be compared.",
+                    Advice = "Restore it from the daily backup (see Saved settings), or reinstall the app and then trust the files.",
+                    Repair = "accept-app-files",
+                    RepairLabel = "Trust the files as they are now"
+                };
+            }
             var saved = LoadBaseline();
             if (saved == null || saved.Version != current.Version)
             {
@@ -186,7 +199,9 @@ namespace WindowsGuardianWatchdog.Core.SelfCheck
             {
                 new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null),
                 new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null),
-                new SecurityIdentifier(WellKnownSidType.WorldSid, null)
+                new SecurityIdentifier(WellKnownSidType.WorldSid, null),
+                // A copy unpacked into your own profile is writable by every program you run.
+                WindowsIdentity.GetCurrent().User!
             };
             // Modify and FullControl include these bits; checking them directly avoids matching rules that only allow reading.
             const FileSystemRights writeRights = FileSystemRights.WriteData | FileSystemRights.AppendData;
@@ -200,7 +215,7 @@ namespace WindowsGuardianWatchdog.Core.SelfCheck
                 .ToList();
 
             if (writable.Count == 0)
-                return new SelfCheckItem { Name = "App folder permissions", Status = CheckStatus.Ok, Detail = $"Only administrators can change {folder.FullName}." };
+                return new SelfCheckItem { Name = "App folder permissions", Status = CheckStatus.Ok, Detail = $"Ordinary programs can't change {folder.FullName}." };
 
             return new SelfCheckItem
             {

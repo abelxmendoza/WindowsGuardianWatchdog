@@ -90,8 +90,6 @@ namespace WindowsGuardianWatchdog.Core.Network
             var services = new List<ExposedService>();
             foreach (var (protocol, address, port, pid) in ReadTcpListeners().Concat(ReadUdpListeners()))
             {
-                // High UDP ports are short-lived replies from ordinary programs, not services anyone can call.
-                if (protocol == "UDP" && port >= 49152) continue;
                 services.Add(Describe(protocol, address, port, pid, NameOf(pid)));
             }
 
@@ -128,6 +126,12 @@ namespace WindowsGuardianWatchdog.Core.Network
             {
                 knownAs = familiar;
                 if (reach != ExposureReach.ThisPcOnly) advice = "A normal Windows or network feature.";
+            }
+            else if (protocol == "UDP" && port >= 49152 && reach != ExposureReach.ThisPcOnly)
+            {
+                // Usually a program's temporary reply channel (browsers, calls, games), but a service can sit here too.
+                knownAs = "Temporary port";
+                advice = "Usually a program's short-lived reply channel. Look it up only if you don't recognize the program.";
             }
 
             return new ExposedService
