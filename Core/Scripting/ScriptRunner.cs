@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Security.Principal;
 using System.Text;
 
 namespace WindowsGuardianWatchdog.Core.Scripting
@@ -14,16 +15,21 @@ namespace WindowsGuardianWatchdog.Core.Scripting
 
     public static class ScriptRunner
     {
+        // app.manifest asks for administrator rights, so the app is normally elevated already. Going through
+        // "runas" again from inside the MSIX package is what broke updates: the script and log are written to
+        // %TEMP%, which the package redirects, so the elevated PowerShell outside the package never found them.
+        public static bool IsElevated { get; } = CheckElevated();
+
         public static Task<ScriptResult> RunPowerShellAsync(string script, bool elevate, int timeoutMs = 120000)
         {
-            return ExecutePowerShellAsync(script, elevate, timeoutMs);
+            return ExecutePowerShellAsync(script, elevate && !IsElevated, timeoutMs);
         }
 
-        public static Task<ScriptResult> RunAsync(string fileName, string arguments, bool elevate, int timeoutMs = 120000)
+        public static Task<ScriptResult> RunAsync(string fileName, string arguments, bool elevate, int timeoutMs = 120000, Encoding? outputEncoding = null)
         {
-            if (!elevate)
+            if (!elevate || IsElevated)
             {
-                return ExecuteProcessAsync(fileName, arguments, timeoutMs);
+                return ExecuteProcessAsync(fileName, arguments, timeoutMs, outputEncoding);
             }
 
             var script = $"& '{Escape(fileName)}' {arguments}";
@@ -117,7 +123,7 @@ namespace WindowsGuardianWatchdog.Core.Scripting
             }
         }
 
-        private static async Task<ScriptResult> ExecuteProcessAsync(string fileName, string arguments, int timeoutMs)
+        private static async Task<ScriptResult> ExecuteProcessAsync(string fileName, string arguments, int timeoutMs, Encoding? outputEncoding)
         {
             var start = new ProcessStartInfo
             {
@@ -128,11 +134,23 @@ namespace WindowsGuardianWatchdog.Core.Scripting
                 RedirectStandardError = true,
                 CreateNoWindow = true
             };
+            if (outputEncoding != null)
+            {
+                start.StandardOutputEncoding = outputEncoding;
+                start.StandardErrorEncoding = outputEncoding;
+            }
 
             using var process = new Process { StartInfo = start };
-            if (!process.Start())
+            try
             {
-                return new ScriptResult { ExitCode = -1, Output = "The command could not be started." };
+                if (!process.Start())
+                {
+                    return new ScriptResult { ExitCode = -1, Output = "The command could not be started." };
+                }
+            }
+            catch (Win32Exception ex)
+            {
+                return new ScriptResult { ExitCode = -1, Output = $"{Path.GetFileName(fileName)} could not be started: {ex.Message}" };
             }
 
             var stdoutTask = process.StandardOutput.ReadToEndAsync();
@@ -163,6 +181,19 @@ namespace WindowsGuardianWatchdog.Core.Scripting
                 }
                 exit $wgCode
                 """;
+        }
+
+        private static bool CheckElevated()
+        {
+            try
+            {
+                using var identity = WindowsIdentity.GetCurrent();
+                return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static string Escape(string value) => value.Replace("'", "''");

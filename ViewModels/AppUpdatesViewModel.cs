@@ -98,7 +98,7 @@ namespace WindowsGuardianWatchdog.ViewModels
         private async Task UpgradeAppsAsync()
         {
             IsBusy = true;
-            StatusText = "Updating every app winget can upgrade. Approve the administrator prompt.";
+            StatusText = "Updating every app winget can upgrade, then asking the Microsoft Store to update its apps. This can take a while.";
             try
             {
                 var result = await AppUpdateService.UpgradeAllAppsAsync();
@@ -127,7 +127,7 @@ namespace WindowsGuardianWatchdog.ViewModels
         private async Task InstallWindowsAsync()
         {
             IsBusy = true;
-            StatusText = "Installing Windows updates. This can take a while. Approve the administrator prompt.";
+            StatusText = "Installing Windows updates. This can take a while.";
             try
             {
                 var result = await AppUpdateService.InstallWindowsUpdatesAsync();
