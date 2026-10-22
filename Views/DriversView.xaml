@@ -17,6 +17,9 @@
                         Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Left"/>
                 <Button Content="Install newer helpers" Click="InstallButton_Click"
                         Style="{StaticResource PrimaryButtonStyle}" HorizontalAlignment="Left"/>
+                <Button Content="Copy all" Click="CopyAllButton_Click"
+                        Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left"
+                        ToolTipService.ToolTip="Copy every device and driver update, with details, to the clipboard"/>
             </StackPanel>
 
             <TextBlock x:Name="StatusText" Text="{Binding StatusText}" Foreground="{StaticResource AccentCyanBrush}" Margin="0,10,0,0"/>

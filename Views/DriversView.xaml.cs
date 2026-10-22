@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml.Controls;
+using Windows.ApplicationModel.DataTransfer;
 using WindowsGuardianWatchdog.ViewModels;
 
 namespace WindowsGuardianWatchdog.Views
@@ -38,6 +39,22 @@ namespace WindowsGuardianWatchdog.Views
             if (sender is Button button && button.DataContext is DriverViewModel driver)
             {
                 await _viewModel.UpdateDriverAsync(driver);
+            }
+        }
+
+        private void CopyAllButton_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            try
+            {
+                var package = new DataPackage();
+                package.SetText(_viewModel.BuildCopyAllText());
+                Clipboard.SetContent(package);
+                Clipboard.Flush();
+                _viewModel.StatusText = $"Copied {_viewModel.Drivers.Count} devices and {_viewModel.AvailableUpdates.Count} driver updates to the clipboard.";
+            }
+            catch (Exception ex)
+            {
+                _viewModel.StatusText = $"Could not copy to the clipboard: {ex.Message}";
             }
         }
 
