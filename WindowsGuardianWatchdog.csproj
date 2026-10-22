@@ -54,6 +54,8 @@
 
   <ItemGroup>
     <Compile Remove="WindowsServiceInstaller.cs" />
+    <Compile Remove="tests\**" />
+    <None Remove="tests\**" />
   </ItemGroup>
 
 </Project>

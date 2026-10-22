@@ -30,7 +30,8 @@ namespace WindowsGuardianWatchdog
             ["Alerts"] = typeof(AlertsView), ["Settings"] = typeof(SettingsView),
             ["AppUpdates"] = typeof(AppUpdatesView), ["FileSearch"] = typeof(FileSearchView),
             ["Quarantine"] = typeof(QuarantineView), ["Exposure"] = typeof(ExposureView),
-            ["AppHealth"] = typeof(AppHealthView), ["Reports"] = typeof(ReportsView)
+            ["AppHealth"] = typeof(AppHealthView), ["Reports"] = typeof(ReportsView),
+            ["Vulnerabilities"] = typeof(VulnerabilityView)
         };
         private NavigationViewItem? _noticesItem;
 
@@ -75,6 +76,7 @@ namespace WindowsGuardianWatchdog
             AddItem("Who can connect", "Doors open to the network", "Exposure", Symbol.World);
             AddHeader("A CLOSER LOOK");
             AddItem("Protection details", "A fuller status picture", "SecurityOverview", Symbol.View);
+            AddItem("Vulnerability check", "Apps with known security holes", "Vulnerabilities", Symbol.ReportHacked);
             AddItem("Check for risks", "Known public issues", "ThreatDetection", Symbol.Find);
             AddItem("Watch folders", "Notice if files change", "FileIntegrity", Symbol.Document);
             AddItem("Protection checkup", "Score the safety switches", "SecurityAudit", Symbol.AllApps);

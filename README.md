@@ -22,6 +22,7 @@ The wolf mark is used consistently by the executable, Windows taskbar, Desktop s
 - **File Integrity Monitoring**: Track file changes, detect unauthorized modifications
 - **Security Auditing**: Comprehensive security assessment with scoring
 - **Automated Remediation**: Fix common security issues automatically
+- **Vulnerability Check**: Compare installed apps and the Windows build with Exploit-DB and CISA's Known Exploited Vulnerabilities list
 
 ### 🎯 Core Capabilities
 
@@ -95,6 +96,16 @@ The wolf mark is used consistently by the executable, Windows taskbar, Desktop s
 11. **Reports** (Mac Reports view)
     - Make a report or weekly summary on demand and reopen earlier ones
 
+### Vulnerability check
+
+12. **Vulnerability Check**
+    - Reads installed apps and versions from the same registry keys as Settings > Apps
+    - Downloads the public [Exploit-DB](https://www.exploit-db.com/) index (`files_exploits.csv`) and CISA's [Known Exploited Vulnerabilities](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) feed, and caches both under `%LOCALAPPDATA%\WindowsGuardianWatchdog`
+    - Reads the affected versions from each Exploit-DB title (`3.0.11`, `< 18.00`, `1.2 < 1.4.3`, `1.0.x/1.5`) and compares them with the installed version, so apps that are already patched are not reported
+    - Ranks results: **Fix now** (exploit for this exact version, and its CVE is being used in real attacks), **Fix soon** (exploit for this exact version, or for a newer version and actively exploited), **Worth checking**, **Good to know**
+    - Flags Windows when monthly updates released after the last installed one fix CVEs that CISA lists as actively exploited
+    - Only the two public lists are downloaded. The app list never leaves the PC
+
 ## Architecture
 
 ```
@@ -104,7 +115,9 @@ WindowsGuardianWatchdog/
 │   ├── FileIntegrityMonitor.cs     # File integrity tracking
 │   ├── BlueTeamDetector.cs         # Threat detection & hunting
 │   ├── SecurityAudit.cs            # Security assessment
-│   └── RemediationEngine.cs        # Automated remediation
+│   ├── RemediationEngine.cs        # Automated remediation
+│   ├── ThreatIntel/ExploitDbCatalog.cs   # Exploit-DB index download, cache and search
+│   └── Vulnerability/              # Vulnerability check: inventory, version rules, CISA KEV, scanner
 ├── Services/
 │   └── WindowsGuardianService.cs   # Windows Service for background monitoring
 ├── Views/
@@ -137,6 +150,9 @@ dotnet build
 
 # Run the application
 dotnet run
+
+# Run the vulnerability scanner tests (works on any OS)
+dotnet test tests/WindowsGuardianWatchdog.Tests
 ```
 
 ## Creating a download
