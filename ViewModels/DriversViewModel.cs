@@ -17,6 +17,7 @@ namespace WindowsGuardianWatchdog.ViewModels
         private readonly DriverInstaller _installer;
         private bool _isScanning;
         private string _statusText = "Ready";
+        private bool _updatesChecked;
 
         private readonly DispatcherQueue? _queue;
 
@@ -70,7 +71,7 @@ namespace WindowsGuardianWatchdog.ViewModels
                 text.AppendLine($"  Date: {driver.DriverDate}");
                 text.AppendLine($"  Provider: {driver.Provider}");
                 text.AppendLine($"  Signed: {(driver.IsSigned ? "Yes" : "No")}");
-                if (driver.IsUpdateAvailable) text.AppendLine("  Update available: Yes");
+                text.AppendLine($"  Update available: {(driver.IsUpdateAvailable ? "Yes" : _updatesChecked ? "No" : "Not checked")}");
                 if (!string.IsNullOrWhiteSpace(driver.DeviceId)) text.AppendLine($"  Device ID: {driver.DeviceId}");
             }
             text.AppendLine();
@@ -78,7 +79,7 @@ namespace WindowsGuardianWatchdog.ViewModels
             text.AppendLine($"Driver updates ({AvailableUpdates.Count})");
             if (AvailableUpdates.Count == 0)
             {
-                text.AppendLine("  None found yet.");
+                text.AppendLine(_updatesChecked ? "  Windows Update has no newer drivers." : "  Not checked yet.");
             }
             foreach (var update in AvailableUpdates)
             {
@@ -94,6 +95,7 @@ namespace WindowsGuardianWatchdog.ViewModels
             IsScanning = true;
             StatusText = "Reading installed drivers…";
             Drivers.Clear();
+            _updatesChecked = false;
 
             try
             {
@@ -183,6 +185,7 @@ namespace WindowsGuardianWatchdog.ViewModels
                         driver.IsHealthy = false;
                     }
                 }
+                _updatesChecked = true;
 
                 var attention = Drivers.Count(driver => !driver.IsHealthy);
                 StatusText = titles.Count == 0
