@@ -79,7 +79,7 @@ Store distribution is the path Microsoft signs itself.
 4. In the listing, use the same description as the package: local security monitoring, with no account and no telemetry. Point the privacy policy at the `Privacy.txt` included in the package, or at a page with that same text.
 5. Submit for certification. Microsoft re-signs the Store package. Users then install it from the Store instead of a sideloaded file.
 
-The package already declares the full-trust desktop capability, Windows 10 version 1809 as the minimum, and Windows 11 version 24H2 as the tested version.
+The package already declares the full-trust desktop capability, Windows 10 version 2004 as the minimum (an elevated Windows App SDK app also needs update KB5013942), and Windows 11 version 24H2 as the tested version.
 
 ## Local test build
 

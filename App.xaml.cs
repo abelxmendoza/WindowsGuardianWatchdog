@@ -6,9 +6,10 @@ namespace WindowsGuardianWatchdog
     {
         private Window? _window;
 
-        // %LOCALAPPDATA%\WindowsGuardianWatchdog\crash.log, so a launch that closes right away leaves a reason behind.
+        // %ProgramData%\WindowsGuardianWatchdog\crash.log, so a launch that closes right away leaves a reason behind.
+        // ProgramData, unlike %LOCALAPPDATA%, isn't redirected inside the MSIX package or tied to whichever admin approved UAC.
         public static string CrashLogPath { get; } = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "WindowsGuardianWatchdog", "crash.log");
 
         public App()

@@ -55,8 +55,7 @@ This is a portable version of Windows Guardian Watchdog.
 You can run it from any location (USB drive, network share, etc.)
 
 System Requirements:
-- Windows 10 version 1809 or later
-- Windows 11
+- Windows 11, or Windows 10 version 2004 or later with current updates
 - No .NET installation required (runtime included)
 
 Usage:

@@ -79,8 +79,7 @@ Installation Instructions:
 3. (Optional) Run CreateDesktopShortcut.ps1 to create desktop shortcut
 
 System Requirements:
-- Windows 10 version 1809 or later
-- Windows 11
+- Windows 11, or Windows 10 version 2004 or later with current updates
 - .NET 8.0 Runtime (will be installed automatically if missing)
 
 For more information, visit the project repository.

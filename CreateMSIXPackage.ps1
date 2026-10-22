@@ -171,7 +171,8 @@ Install Windows Guardian Watchdog
    check Defender, the firewall, and Windows Update.
 
 The package includes the .NET runtime, so a separate runtime install is not required.
-Windows 10 version 1809 or Windows 11 is required.
+Windows 11, or Windows 10 version 2004 or later with current updates, is required.
+An elevated Windows App SDK app needs Windows 10 update KB5013942 or newer.
 
 Remove it from Settings > Apps, or run:
   Get-AppxPackage WindowsGuardianWatchdog | Remove-AppxPackage
