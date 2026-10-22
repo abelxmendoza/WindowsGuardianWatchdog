@@ -1,0 +1,19 @@
+<Page x:Class="WindowsGuardianWatchdog.Views.AppHealthView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:guide="using:WindowsGuardianWatchdog.Components">
+    <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
+        <StackPanel Padding="20" Spacing="20" Background="{StaticResource BackgroundBlackBrush}">
+            <guide:PageGuide Title="App health" Priority="Optional"
+                             Summary="This app checking itself: its own files, its saved settings, whether the background watch is running, and recent crashes."
+                             Why="A security tool is a target. If someone changed this app's files, or its memory of what is normal got damaged, its other answers can't be trusted. Honest limit: someone who already controls your account could change both the app and its records."/>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="CheckButton" Content="Check again" Click="CheckButton_Click" Style="{StaticResource AccentButtonStyle}"/>
+                <Button Content="Open the data folder" Click="OpenDataButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+            </StackPanel>
+            <TextBlock x:Name="StatusText" Foreground="{StaticResource AccentCyanBrush}" TextWrapping="Wrap"/>
+            <StackPanel x:Name="ChecksPanel" Spacing="10"/>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

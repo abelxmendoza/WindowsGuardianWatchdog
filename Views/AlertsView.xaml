@@ -2,25 +2,22 @@
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:guide="using:WindowsGuardianWatchdog.Components">
-    <!-- Security Alerts View -->
+    <!-- Notices: the timeline of what the app noticed, fed by the change watch and quarantine -->
     <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
         <StackPanel Padding="20" Spacing="20" Background="{StaticResource BackgroundBlackBrush}">
             <guide:PageGuide Title="Notices" Priority="Optional"
-                             Summary="Notes this app wrote while you were using it."
-                             Why="An empty list is normal. A notice means something changed or a check found an item worth reading. It does not mean the PC is unsafe by itself."/>
-            
-            <ListView x:Name="AlertsListView" Height="500" Background="{StaticResource BackgroundNoiseBrush}" Foreground="{StaticResource TextPrimaryBrush}">
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Padding="10" Background="{StaticResource BackgroundCardBrush}" Margin="0,2,0,2" BorderBrush="{StaticResource SecondaryRedBrush}" BorderThickness="1">
-                            <TextBlock Text="{Binding Message}" FontWeight="SemiBold" Foreground="{StaticResource SecondaryRedBrush}"/>
-                            <TextBlock Text="{Binding Category}" FontSize="12" Foreground="{StaticResource AccentCyanBrush}" Margin="0,5,0,0"/>
-                            <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource TextGrayBrush}" FontFamily="Consolas"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
+                             Summary="What this app noticed, newest first. Every five minutes while the app is open it looks at the settings an intruder changes first: the firewall, virus protection, administrator prompts, administrator accounts, programs that open with Windows, and a few others."
+                             Why="An empty list is normal. &quot;Act now&quot; means something that was on got switched off, or a new way into the PC appeared. If you made the change yourself, mark it as read."/>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="CheckNowButton" Content="Check now" Click="CheckNowButton_Click" Style="{StaticResource AccentButtonStyle}"/>
+                <Button Content="Mark all as read" Click="MarkAllButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                <Button Content="Clear read notices" Click="ClearReadButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                <ToggleSwitch x:Name="UnreadOnlySwitch" OnContent="Unread only" OffContent="Everything" Toggled="UnreadOnlySwitch_Toggled"/>
+            </StackPanel>
+
+            <TextBlock x:Name="StatusText" Foreground="{StaticResource AccentCyanBrush}" TextWrapping="Wrap"/>
+            <StackPanel x:Name="NoticesPanel" Spacing="10"/>
         </StackPanel>
     </ScrollViewer>
 </Page>
-

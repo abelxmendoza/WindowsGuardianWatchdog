@@ -85,7 +85,12 @@ This document tracks the alignment between Windows Guardian Watchdog and MacGuar
 | Alert Engine | ✅ | ⏳ | In Progress |
 | Scheduled Reports | ✅ | ⏳ | In Progress |
 | Incident Management | ✅ | ⏳ | In Progress |
-| Event Persistence | ✅ | ⏳ | In Progress |
+| Event Persistence | ✅ | ✅ | Notices timeline (`Core/Incidents/EventTimeline.cs`) |
+| Defenses switched off / tripwires | ✅ (Linux) | ✅ | `Core/Sensors/ChangeWatch.cs` |
+| Reversible quarantine | ✅ | ✅ | `Core/Quarantine/QuarantineVault.cs` |
+| Network exposure | ✅ (Linux) | ✅ | `Core/Network/ExposureInventory.cs` |
+| Self-check | ✅ | ✅ | `Core/SelfCheck/AppSelfCheck.cs` |
+| Reports view | ✅ | ✅ | `Views/ReportsView.xaml` |
 
 ## OS-Specific Differences
 

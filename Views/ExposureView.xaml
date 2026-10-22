@@ -1,0 +1,25 @@
+<Page x:Class="WindowsGuardianWatchdog.Views.ExposureView"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:guide="using:WindowsGuardianWatchdog.Components">
+    <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
+        <StackPanel Padding="20" Spacing="20" Background="{StaticResource BackgroundBlackBrush}">
+            <guide:PageGuide Title="Who can connect" Priority="Recommended"
+                             Summary="Programs on this PC that accept connections, and who can reach each one: only this PC, or other devices on the network."
+                             Why="Every program that answers from the network is a door. On public Wi-Fi, strangers share that network. This page only looks; it never closes anything. Windows Firewall can still block a door listed here, so keep it on for public networks."/>
+
+            <Button x:Name="RefreshButton" Content="Look again" Click="RefreshButton_Click" Style="{StaticResource AccentButtonStyle}"/>
+
+            <Grid ColumnSpacing="14">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Style="{StaticResource MetricCardStyle}"><StackPanel Spacing="6"><TextBlock Text="Reachable from the network" Style="{StaticResource MetricLabelStyle}"/><TextBlock x:Name="ReachableText" Text="—" Style="{StaticResource MetricValueStyle}"/></StackPanel></Border>
+                <Border Grid.Column="1" Style="{StaticResource MetricCardStyle}"><StackPanel Spacing="6"><TextBlock Text="Worth a look" Style="{StaticResource MetricLabelStyle}"/><TextBlock x:Name="RiskyText" Text="—" Style="{StaticResource MetricValueStyle}"/></StackPanel></Border>
+                <Border Grid.Column="2" Style="{StaticResource MetricCardStyle}"><StackPanel Spacing="6"><TextBlock Text="Firewall" Style="{StaticResource MetricLabelStyle}"/><TextBlock x:Name="FirewallText" Text="—" Style="{StaticResource MetricValueStyle}" TextWrapping="Wrap"/></StackPanel></Border>
+            </Grid>
+
+            <ToggleSwitch x:Name="ShowLocalSwitch" OnContent="Also show programs only this PC can reach" OffContent="Hide programs only this PC can reach" Toggled="ShowLocalSwitch_Toggled"/>
+            <TextBlock x:Name="StatusText" Foreground="{StaticResource AccentCyanBrush}" TextWrapping="Wrap"/>
+            <StackPanel x:Name="ServicesPanel" Spacing="10"/>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -275,23 +275,14 @@ namespace WindowsGuardianWatchdog.Core
                         };
                     }
 
-                    var quarantineDir = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                        "WindowsGuardianWatchdog",
-                        "Quarantine");
-
-                    Directory.CreateDirectory(quarantineDir);
-
-                    var fileName = Path.GetFileName(filePath);
-                    var quarantinePath = Path.Combine(quarantineDir, $"{DateTime.Now:yyyyMMddHHmmss}_{fileName}");
-
-                    File.Move(filePath, quarantinePath);
+                    // Reversible: the Quarantine page can put it back (see QuarantineVault).
+                    var entry = WindowsGuardianWatchdog.Core.Quarantine.QuarantineVault.QuarantineFile(filePath, "Quarantined from Fix a problem");
 
                     var result = new RemediationResult
                     {
                         Action = new RemediationAction { Type = RemediationType.QuarantineFile, Target = filePath },
                         Success = true,
-                        Message = $"File quarantined: {quarantinePath}",
+                        Message = $"File quarantined. Restore it from the Quarantine page if it was safe (item {entry.Id}).",
                         Timestamp = DateTime.Now
                     };
 
