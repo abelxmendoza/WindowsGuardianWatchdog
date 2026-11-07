@@ -112,7 +112,12 @@ namespace WindowsGuardianWatchdog.Core.Defender
             try {
                 $names = @{}
                 foreach ($t in @(Get-MpThreat)) { $names[[string]$t.ThreatID] = $t }
-                $list = @(Get-MpThreatDetection | Sort-Object InitialDetectionTime -Descending | Select-Object -First 50 | ForEach-Object {
+                # Everything still waiting on a decision, plus the 50 most recent that were dealt with, so a long
+                # history can't push an unresolved threat off the list.
+                $open = @(0, 1, 102, 103, 105, 107)
+                $all = @(Get-MpThreatDetection | Sort-Object InitialDetectionTime -Descending)
+                $shown = @($all | Where-Object { $open -contains [int]$_.ThreatStatusID }) + @($all | Where-Object { $open -notcontains [int]$_.ThreatStatusID } | Select-Object -First 50)
+                $list = @($shown | ForEach-Object {
                     $t = $names[[string]$_.ThreatID]
                     [pscustomobject]@{
                         Name = $(if ($t) { [string]$t.ThreatName } else { "Threat $($_.ThreatID)" })
@@ -187,6 +192,9 @@ namespace WindowsGuardianWatchdog.Core.Defender
         {
             var run = await ScriptRunner.RunPowerShellAsync(ThreatsScript, elevate: false, timeoutMs: 120000);
             if (run.Cancelled) throw new InvalidOperationException(run.Output);
+            // A timeout or a crash must not read as "nothing found".
+            if (LastJsonLine(run.Output) == null)
+                throw new InvalidOperationException("Defender did not say what it found. " + FirstLine(run.Output));
             return ParseThreats(run.Output);
         }
 
