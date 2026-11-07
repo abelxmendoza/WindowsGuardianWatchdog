@@ -327,8 +327,17 @@ namespace WindowsGuardianWatchdog.Core.Sensors
             if (root == null) return;
             foreach (var program in root.GetSubKeyNames())
             {
-                using var key = root.OpenSubKey(program);
-                var debugger = key?.GetValue("Debugger")?.ToString();
+                string? debugger;
+                try
+                {
+                    using var key = root.OpenSubKey(program);
+                    debugger = key?.GetValue("Debugger")?.ToString();
+                }
+                catch (System.Security.SecurityException)
+                {
+                    // Some entries are locked down even for reading; one of them must not blind the whole group.
+                    continue;
+                }
                 if (string.IsNullOrWhiteSpace(debugger)) continue;
                 items.Add(new WatchItem($"ifeo:{program}", "ifeo", $"Starting {program} runs \"{debugger}\" instead", Fingerprint(debugger)));
             }

@@ -180,8 +180,16 @@ namespace WindowsGuardianWatchdog.Core
                 using var ifeo = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options");
                 foreach (var program in ifeo?.GetSubKeyNames() ?? Array.Empty<string>())
                 {
-                    using var key = ifeo!.OpenSubKey(program);
-                    var debugger = key?.GetValue("Debugger")?.ToString();
+                    string? debugger;
+                    try
+                    {
+                        using var key = ifeo!.OpenSubKey(program);
+                        debugger = key?.GetValue("Debugger")?.ToString();
+                    }
+                    catch (System.Security.SecurityException)
+                    {
+                        continue;
+                    }
                     if (string.IsNullOrWhiteSpace(debugger)) continue;
                     threats.Add(Finding(ThreatType.Registry, ThreatSeverity.High, $"Starting {program} runs something else",
                         $"Debugger is set to \"{debugger}\". Developer tools sometimes do this; otherwise it is a known way to hijack programs."));
