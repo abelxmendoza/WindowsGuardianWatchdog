@@ -12,80 +12,69 @@ namespace WindowsGuardianWatchdog.Core
 
         public async Task<RemediationResult> RemediateAsync(RemediationAction action, bool dryRun = true)
         {
-            if (dryRun)
-            {
-                return new RemediationResult
+            var result = dryRun
+                ? new RemediationResult
                 {
                     Action = action,
                     Success = true,
-                    Message = $"Dry run: Would execute {action.Type}",
-                    Timestamp = DateTime.Now
-                };
-            }
-
-            return action.Type switch
-            {
-                RemediationType.EnableWindowsDefender => await EnableWindowsDefenderAsync(),
-                RemediationType.EnableFirewall => await EnableFirewallAsync(),
-                RemediationType.EnableUAC => await EnableUACAsync(),
-                RemediationType.KillProcess => await KillProcessAsync(action.Target),
-                RemediationType.QuarantineFile => await QuarantineFileAsync(action.Target),
-                RemediationType.RemoveStartupEntry => await RemoveStartupEntryAsync(action.Target),
-                _ => new RemediationResult
-                {
-                    Action = action,
-                    Success = false,
-                    Message = "Unknown remediation type",
+                    Message = $"Preview only: would {Describe(action)}. Nothing was changed.",
                     Timestamp = DateTime.Now
                 }
-            };
+                : action.Type switch
+                {
+                    RemediationType.EnableWindowsDefender => await EnableWindowsDefenderAsync(),
+                    RemediationType.EnableFirewall => await EnableFirewallAsync(),
+                    RemediationType.EnableUAC => await EnableUACAsync(),
+                    RemediationType.KillProcess => await KillProcessAsync(action.Target),
+                    RemediationType.QuarantineFile => await QuarantineFileAsync(action.Target),
+                    RemediationType.RemoveStartupEntry => await RemoveStartupEntryAsync(action.Target),
+                    _ => new RemediationResult
+                    {
+                        Action = action,
+                        Success = false,
+                        Message = "Unknown remediation type",
+                        Timestamp = DateTime.Now
+                    }
+                };
+
+            // Every outcome is shown, including previews and failures, so a button never seems to do nothing.
+            OnRemediationCompleted(result);
+            return result;
         }
+
+        private static string Describe(RemediationAction action) => action.Type switch
+        {
+            RemediationType.EnableWindowsDefender => "turn on Microsoft Defender real-time protection",
+            RemediationType.EnableFirewall => "turn on Windows Firewall for every network type",
+            RemediationType.EnableUAC => "turn on administrator prompts (UAC); a restart is needed afterwards",
+            RemediationType.KillProcess => $"end the program {action.Target}",
+            RemediationType.QuarantineFile => $"move {action.Target} into quarantine",
+            RemediationType.RemoveStartupEntry => $"stop {action.Target} from opening with Windows",
+            _ => action.Type.ToString()
+        };
 
         private async Task<RemediationResult> EnableWindowsDefenderAsync()
         {
-            return await Task.Run(() =>
+            // Check the result instead of trusting the exit code: with Tamper Protection or a group policy in the way,
+            // Set-MpPreference can "succeed" and change nothing.
+            const string script = """
+                $ErrorActionPreference = 'Stop'
+                Set-MpPreference -DisableRealtimeMonitoring $false
+                Start-Sleep -Seconds 2
+                if ((Get-MpComputerStatus).RealTimeProtectionEnabled) { 'on' } else { 'still off'; exit 2 }
+                """;
+            var run = await WindowsGuardianWatchdog.Core.Scripting.ScriptRunner.RunPowerShellAsync(script, elevate: true, timeoutMs: 120000);
+            return new RemediationResult
             {
-                try
-                {
-                    var startInfo = new ProcessStartInfo
-                    {
-                        FileName = "powershell",
-                        Arguments = "-Command \"Set-MpPreference -DisableRealtimeMonitoring $false\"",
-                        Verb = "runas", // Run as administrator
-                        UseShellExecute = true,
-                        CreateNoWindow = true
-                    };
-
-                    using var process = Process.Start(startInfo);
-                    process?.WaitForExit();
-
-                    var result = new RemediationResult
-                    {
-                        Action = new RemediationAction { Type = RemediationType.EnableWindowsDefender },
-                        Success = process?.ExitCode == 0,
-                        Message = process?.ExitCode == 0 
-                            ? "Windows Defender enabled successfully" 
-                            : "Failed to enable Windows Defender",
-                        Timestamp = DateTime.Now
-                    };
-
-                    OnRemediationCompleted(result);
-                    return result;
-                }
-                catch (Exception ex)
-                {
-                    var result = new RemediationResult
-                    {
-                        Action = new RemediationAction { Type = RemediationType.EnableWindowsDefender },
-                        Success = false,
-                        Message = $"Error: {ex.Message}",
-                        Timestamp = DateTime.Now
-                    };
-
-                    OnRemediationCompleted(result);
-                    return result;
-                }
-            });
+                Action = new RemediationAction { Type = RemediationType.EnableWindowsDefender },
+                Success = run.Success,
+                Message = run.Success
+                    ? "Microsoft Defender real-time protection is on."
+                    : run.Cancelled
+                        ? "Administrator approval was cancelled, so nothing changed."
+                        : "Real-time protection is still off. Turn it on in Windows Security > Virus & threat protection > Manage settings. If it's greyed out, a policy or another antivirus controls it. " + run.Output.Trim(),
+                Timestamp = DateTime.Now
+            };
         }
 
         private async Task<RemediationResult> EnableFirewallAsync()
@@ -115,8 +104,6 @@ namespace WindowsGuardianWatchdog.Core
                             : "Failed to enable firewall",
                         Timestamp = DateTime.Now
                     };
-
-                    OnRemediationCompleted(result);
                     return result;
                 }
                 catch (Exception ex)
@@ -128,8 +115,6 @@ namespace WindowsGuardianWatchdog.Core
                         Message = $"Error: {ex.Message}",
                         Timestamp = DateTime.Now
                     };
-
-                    OnRemediationCompleted(result);
                     return result;
                 }
             });
@@ -156,8 +141,6 @@ namespace WindowsGuardianWatchdog.Core
                             Message = "UAC enabled successfully (restart required)",
                             Timestamp = DateTime.Now
                         };
-
-                        OnRemediationCompleted(result);
                         return result;
                     }
 
@@ -178,8 +161,6 @@ namespace WindowsGuardianWatchdog.Core
                         Message = $"Error: {ex.Message}",
                         Timestamp = DateTime.Now
                     };
-
-                    OnRemediationCompleted(result);
                     return result;
                 }
             });
@@ -229,8 +210,6 @@ namespace WindowsGuardianWatchdog.Core
                             Message = $"Process {process.ProcessName} (PID: {process.Id}) terminated",
                             Timestamp = DateTime.Now
                         };
-
-                        OnRemediationCompleted(result);
                         return result;
                     }
 
@@ -251,8 +230,6 @@ namespace WindowsGuardianWatchdog.Core
                         Message = $"Error: {ex.Message}",
                         Timestamp = DateTime.Now
                     };
-
-                    OnRemediationCompleted(result);
                     return result;
                 }
             });
@@ -285,8 +262,6 @@ namespace WindowsGuardianWatchdog.Core
                         Message = $"File quarantined. Restore it from the Quarantine page if it was safe (item {entry.Id}).",
                         Timestamp = DateTime.Now
                     };
-
-                    OnRemediationCompleted(result);
                     return result;
                 }
                 catch (Exception ex)
@@ -298,8 +273,6 @@ namespace WindowsGuardianWatchdog.Core
                         Message = $"Error: {ex.Message}",
                         Timestamp = DateTime.Now
                     };
-
-                    OnRemediationCompleted(result);
                     return result;
                 }
             });
@@ -337,8 +310,6 @@ namespace WindowsGuardianWatchdog.Core
                             Message = $"Startup entry '{entryName}' removed",
                             Timestamp = DateTime.Now
                         };
-
-                        OnRemediationCompleted(result);
                         return result;
                     }
 
@@ -359,8 +330,6 @@ namespace WindowsGuardianWatchdog.Core
                         Message = $"Error: {ex.Message}",
                         Timestamp = DateTime.Now
                     };
-
-                    OnRemediationCompleted(result);
                     return result;
                 }
             });

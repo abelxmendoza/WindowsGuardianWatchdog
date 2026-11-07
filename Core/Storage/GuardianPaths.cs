@@ -6,9 +6,10 @@ namespace WindowsGuardianWatchdog.Core.Storage
     /// </summary>
     public static class GuardianPaths
     {
-        public static string DataDirectory { get; } = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "WindowsGuardianWatchdog");
+        // WGW_DATA_DIR lets the tests use a scratch folder instead of the real app data.
+        public static string DataDirectory { get; } = Environment.GetEnvironmentVariable("WGW_DATA_DIR") is { Length: > 0 } overridden
+            ? overridden
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WindowsGuardianWatchdog");
 
         // Older parts of the app (config, baselines, reports) write under %APPDATA%.
         public static string RoamingDirectory { get; } = Path.Combine(

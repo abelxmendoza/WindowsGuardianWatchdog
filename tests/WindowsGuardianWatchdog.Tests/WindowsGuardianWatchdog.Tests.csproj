@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests for the parts of the app that don't need a window: Defender, cleanup, quarantine, change watch, the
+    vulnerability catalog, drivers. They compile the app's Core folder directly, because the app itself is a WinUI
+    executable that a test project can't reference.
+
+    Tests marked [Trait("Category", "Device")] read the real PC (Defender, registry, drivers, the network). CI runs
+    everything else; run the device tests on a real Windows PC with the filter Category=Device.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <IsPackable>false</IsPackable>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RootNamespace>WindowsGuardianWatchdog.Tests</RootNamespace>
+    <NoWarn>$(NoWarn);CA1416;CS8618;CS0168;CS0219;CS1998;CS0067</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\GlobalUsings.cs" Link="App\GlobalUsings.cs" />
+    <Compile Include="..\..\Core\**\*.cs" Exclude="..\..\Core\SelfCheck\AppSelfCheck.cs;..\..\Core\Sensors\BackgroundWatch.cs" Link="App\Core\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
+    <PackageReference Include="System.Diagnostics.EventLog" Version="8.0.0" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="8.0.0" />
+    <PackageReference Include="Microsoft.ML" Version="3.0.0" />
+    <PackageReference Include="Microsoft.ML.TimeSeries" Version="3.0.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+  </ItemGroup>
+
+</Project>

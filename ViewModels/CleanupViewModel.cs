@@ -12,6 +12,7 @@ namespace WindowsGuardianWatchdog.ViewModels
     public class CleanupViewModel : ViewModelBase
     {
         private readonly CleanupOrchestrator _orchestrator;
+        private readonly DispatcherQueue? _dispatcher;
         private CleanupReport? _currentReport;
         private bool _isScanning;
         private bool _isCleaning;
@@ -23,8 +24,8 @@ namespace WindowsGuardianWatchdog.ViewModels
             _orchestrator = new CleanupOrchestrator();
             CleanupItems = new ObservableCollection<CleanupItemViewModel>();
             
+            _dispatcher = DispatcherQueue.GetForCurrentThread();
             _orchestrator.ProgressUpdated += Orchestrator_ProgressUpdated;
-            _orchestrator.CleanupCompleted += Orchestrator_CleanupCompleted;
         }
 
         public ObservableCollection<CleanupItemViewModel> CleanupItems { get; }
@@ -74,15 +75,19 @@ namespace WindowsGuardianWatchdog.ViewModels
                         CleanupItems.Add(new CleanupItemViewModel
                         {
                             Path = item.Path,
-                            Category = item.Category,
+                            Category = string.IsNullOrEmpty(item.Description) ? item.Category : $"{item.Category} · {item.Description}",
                             Size = item.Size,
+                            SizeText = FormatBytes(item.Size),
                             LastModified = item.LastModified,
                             Type = item.Type.ToString()
                         });
                     }
                 }
 
-                StatusText = $"Found {CleanupItems.Count} items ({TotalSizeFormatted})";
+                StatusText = CleanupItems.Count == 0
+                    ? "Nothing to clean up. This PC is already tidy."
+                    : $"Found {CleanupItems.Count} places to clean, about {TotalSizeFormatted}. Nothing has been deleted yet.";
+                OnPropertyChanged(nameof(TotalSizeFormatted));
             }
             catch (Exception ex)
             {
@@ -96,20 +101,31 @@ namespace WindowsGuardianWatchdog.ViewModels
 
         public async Task CleanAsync(bool dryRun)
         {
-            if (_currentReport == null) return;
+            if (_currentReport == null)
+            {
+                StatusText = "Choose \"1. Look first\" so there is a list to work from.";
+                return;
+            }
 
             IsCleaning = true;
-            StatusText = dryRun ? "Dry run..." : "Cleaning...";
+            StatusText = dryRun ? "Working out what would be removed…" : "Cleaning…";
 
             try
             {
-                await _orchestrator.ExecuteCleanupAsync(_currentReport, dryRun);
-                StatusText = dryRun ? "Dry run completed" : "Cleanup completed";
-                
-                if (!dryRun)
+                var outcome = await _orchestrator.ExecuteCleanupAsync(_currentReport, dryRun);
+                if (outcome.Preview)
                 {
-                    CleanupItems.Clear();
+                    StatusText = $"Preview: cleaning up would remove about {FormatBytes(outcome.FreedBytes)} from the {CleanupItems.Count} places listed. Nothing was deleted.";
+                    return;
                 }
+
+                var skipped = outcome.Skipped == 0
+                    ? string.Empty
+                    : $" {outcome.Skipped} file{(outcome.Skipped == 1 ? " was" : "s were")} in use and left alone; close your browsers and other apps, then try again to get those too.";
+                StatusText = $"Freed {FormatBytes(outcome.FreedBytes)} ({outcome.Removed} files).{skipped}";
+                CleanupItems.Clear();
+                _currentReport = null;
+                OnPropertyChanged(nameof(TotalSizeFormatted));
             }
             catch (Exception ex)
             {
@@ -123,22 +139,17 @@ namespace WindowsGuardianWatchdog.ViewModels
 
         private void Orchestrator_ProgressUpdated(object? sender, CleanupProgress progress)
         {
-            DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
+            void Apply()
             {
                 StatusText = $"{progress.Category}: {progress.Status}";
                 Progress = progress.Progress;
-            });
+            }
+
+            if (_dispatcher == null || _dispatcher.HasThreadAccess) Apply();
+            else _dispatcher.TryEnqueue(Apply);
         }
 
-        private void Orchestrator_CleanupCompleted(object? sender, CleanupResult result)
-        {
-            DispatcherQueue.GetForCurrentThread().TryEnqueue(() =>
-            {
-                StatusText = "Cleanup completed";
-            });
-        }
-
-        private string FormatBytes(long bytes)
+        public static string FormatBytes(long bytes)
         {
             string[] sizes = { "B", "KB", "MB", "GB", "TB" };
             double len = bytes;
@@ -157,12 +168,20 @@ namespace WindowsGuardianWatchdog.ViewModels
         public string Path { get; set; } = string.Empty;
         public string Category { get; set; } = string.Empty;
         public long Size { get; set; }
+        public string SizeText { get; set; } = string.Empty;
         public DateTime LastModified { get; set; }
         public string Type { get; set; } = string.Empty;
     }
 
-    public abstract class ViewModelBase
+    /// <summary>
+    /// Base for the pages' view models. It must implement INotifyPropertyChanged: without the interface WinUI reads
+    /// each {Binding} once and never again, which is how status lines like "Scanning…" or "Cleanup completed" never
+    /// showed up. Changes made on a background thread are passed to the UI thread, which WinUI requires.
+    /// </summary>
+    public abstract class ViewModelBase : INotifyPropertyChanged
     {
+        private readonly DispatcherQueue? _uiQueue = DispatcherQueue.GetForCurrentThread();
+
         protected bool SetProperty<T>(ref T backingStore, T value, [CallerMemberName] string propertyName = "")
         {
             if (System.Collections.Generic.EqualityComparer<T>.Default.Equals(backingStore, value))
@@ -177,8 +196,10 @@ namespace WindowsGuardianWatchdog.ViewModels
 
         protected void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            if (_uiQueue == null || _uiQueue.HasThreadAccess)
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            else
+                _uiQueue.TryEnqueue(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)));
         }
     }
 }
-

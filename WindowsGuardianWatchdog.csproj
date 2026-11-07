@@ -28,7 +28,6 @@
     <PackageReference Include="System.Management" Version="8.0.0" />
     <PackageReference Include="System.Diagnostics.EventLog" Version="8.0.0" />
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
-    <PackageReference Include="System.Management.Automation" Version="7.4.0" />
     <PackageReference Include="Microsoft.ML" Version="3.0.0" />
     <PackageReference Include="Microsoft.ML.TimeSeries" Version="3.0.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
@@ -54,6 +53,11 @@
 
   <ItemGroup>
     <Compile Remove="WindowsServiceInstaller.cs" />
+    <!-- The test project has its own build; keep its files out of the app. -->
+    <Compile Remove="tests\**" />
+    <None Remove="tests\**" />
+    <Content Remove="tests\**" />
+    <Page Remove="tests\**" />
   </ItemGroup>
 
 </Project>

@@ -5,13 +5,43 @@
     <!-- Threat Detection View -->
     <ScrollViewer Background="{StaticResource BackgroundBlackBrush}">
         <StackPanel Padding="20" Spacing="20" Background="{StaticResource BackgroundBlackBrush}">
-            <guide:PageGuide Title="Check for risks" Priority="Optional"
-                             Summary="Looks through this PC for signs of a problem, then compares your apps with a public list of known issues."
-                             Why="Most people do not need this every day. Use it if something feels wrong, or after you install an unfamiliar program. The public list shows titles and dates only. It does not download instructions for breaking into a computer."/>
+            <guide:PageGuide Title="Scan for viruses" Priority="Important"
+                             Summary="Runs a Microsoft Defender virus scan, looks through this PC for warning signs, and compares your apps with a public list of known issues."
+                             Why="Defender already watches new files on its own. Run a quick scan if something feels wrong, after you install an unfamiliar program, or if a notice asks you to. The public list shows titles and dates only. It does not download instructions for breaking into a computer."/>
 
-            <Button Content="Look through this PC" Click="ThreatHuntButton_Click" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Left"/>
+            <Border Style="{StaticResource SectionCardStyle}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Virus scan (Microsoft Defender)" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock x:Name="DefenderSummaryText" Text="Checking Microsoft Defender…" Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="QuickScanButton" Content="Quick scan" Click="QuickScanButton_Click" Style="{StaticResource AccentButtonStyle}"/>
+                        <Button x:Name="FullScanButton" Content="Full scan (in the background)" Click="FullScanButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                        <Button x:Name="UpdateDefinitionsButton" Content="Update virus definitions" Click="UpdateDefinitionsButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                    </StackPanel>
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="ScanPathBox" PlaceholderText="Paste a file or folder path, for example C:\Users\you\Downloads" Style="{StaticResource DarkTextBoxStyle}"/>
+                        <Button Grid.Column="1" x:Name="ScanPathButton" Content="Scan a file or folder" Click="ScanPathButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+                    </Grid>
+                    <ProgressBar x:Name="DefenderProgress" IsIndeterminate="True" Visibility="Collapsed"/>
+                    <TextBlock x:Name="DefenderStatusText" Text="" Foreground="{StaticResource AccentCyanBrush}" TextWrapping="Wrap" IsTextSelectionEnabled="True"/>
+                    <TextBlock Text="What Defender found" FontWeight="SemiBold"/>
+                    <StackPanel x:Name="DefenderThreatsPanel" Spacing="8"/>
+                    <Button x:Name="RemoveThreatsButton" Content="Remove what Defender found" Click="RemoveThreatsButton_Click" Style="{StaticResource DangerButtonStyle}" Visibility="Collapsed"/>
+                </StackPanel>
+            </Border>
 
-            <TextBlock x:Name="ThreatReportText" Text="No threat hunt performed yet." Foreground="{StaticResource TextGrayBrush}" Margin="0,20,0,0"/>
+            <Border Style="{StaticResource SectionCardStyle}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Warning signs" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <TextBlock Text="Checks that Defender and the firewall are on, then looks for unsigned programs running from download or temp folders, programs set to start from those folders, and program hijacks." Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap"/>
+                    <Button x:Name="ThreatHuntButton" Content="Look through this PC" Click="ThreatHuntButton_Click" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Left"/>
+                    <TextBlock x:Name="ThreatReportText" Text="Not checked yet." Foreground="{StaticResource TextGrayBrush}" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
 
             <Border Style="{StaticResource SectionCardStyle}" Margin="0,10,0,0">
                 <StackPanel Spacing="12">
@@ -47,13 +77,13 @@
                 </ListView.ItemTemplate>
             </ListView>
 
-            <TextBlock Text="Detected Threats" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,20,0,0"/>
-            <ListView x:Name="ThreatsListView" Height="400" Background="{StaticResource BackgroundNoiseBrush}" Foreground="{StaticResource TextPrimaryBrush}">
+            <TextBlock Text="Warning signs found" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,20,0,0"/>
+            <ListView x:Name="ThreatsListView" MaxHeight="400" Background="{StaticResource BackgroundNoiseBrush}" Foreground="{StaticResource TextPrimaryBrush}">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Padding="10" Background="{StaticResource BackgroundCardBrush}" Margin="0,2,0,2" BorderBrush="{StaticResource SecondaryRedBrush}" BorderThickness="1">
                             <TextBlock Text="{Binding Description}" FontWeight="SemiBold" Foreground="{StaticResource SecondaryRedBrush}"/>
-                            <TextBlock Text="{Binding Details}" FontSize="12" Foreground="{StaticResource TextGrayBrush}" Margin="0,5,0,0"/>
+                            <TextBlock Text="{Binding Details}" FontSize="12" Foreground="{StaticResource TextGrayBrush}" Margin="0,5,0,0" TextWrapping="Wrap"/>
                             <TextBlock Text="{Binding Timestamp}" FontSize="11" Foreground="{StaticResource AccentCyanBrush}" FontFamily="Consolas"/>
                         </StackPanel>
                     </DataTemplate>

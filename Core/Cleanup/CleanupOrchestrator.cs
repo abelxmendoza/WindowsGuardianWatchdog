@@ -1,130 +1,80 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
 namespace WindowsGuardianWatchdog.Core.Cleanup
 {
+    /// <summary>
+    /// "Free up space": temporary files, crash reports, browser caches and the Recycle Bin.
+    ///
+    /// There is deliberately no registry cleaner. Removing "orphaned" registry entries frees no space, can break
+    /// uninstallers, and the old one here didn't actually delete anything while reporting that it had.
+    /// Prefetch and C:\Windows\Logs are also left alone: Windows rebuilds Prefetch (making the next starts slower)
+    /// and the logs are what support needs when something goes wrong.
+    /// </summary>
     public class CleanupOrchestrator
     {
-        private readonly DiskCleaner _diskCleaner;
-        private readonly TempFileCleaner _tempCleaner;
-        private readonly BrowserCleaner _browserCleaner;
-        private readonly RecycleBinCleaner _recycleBinCleaner;
-        private readonly RegistryCleaner _registryCleaner;
+        private readonly TempFileCleaner _tempCleaner = new();
+        private readonly DiskCleaner _diskCleaner = new();
+        private readonly BrowserCleaner _browserCleaner = new();
+        private readonly RecycleBinCleaner _recycleBinCleaner = new();
 
         public event EventHandler<CleanupProgress>? ProgressUpdated;
-        public event EventHandler<CleanupResult>? CleanupCompleted;
 
-        public CleanupOrchestrator()
+        private IEnumerable<(string Category, Func<CleanupResult> Scan, Func<CleanupResult, CleanupOutcome> Execute)> Cleaners()
         {
-            _diskCleaner = new DiskCleaner();
-            _tempCleaner = new TempFileCleaner();
-            _browserCleaner = new BrowserCleaner();
-            _recycleBinCleaner = new RecycleBinCleaner();
-            _registryCleaner = new RegistryCleaner();
+            yield return (TempFileCleaner.CategoryName, _tempCleaner.Scan, _tempCleaner.Execute);
+            yield return (DiskCleaner.CategoryName, _diskCleaner.Scan, _diskCleaner.Execute);
+            yield return (BrowserCleaner.CategoryName, _browserCleaner.Scan, _browserCleaner.Execute);
+            yield return (RecycleBinCleaner.CategoryName, _recycleBinCleaner.Scan, _recycleBinCleaner.Execute);
         }
 
         public async Task<CleanupReport> ScanAllAsync()
         {
-            var report = new CleanupReport
+            var report = new CleanupReport { ScanTime = DateTime.Now };
+            var cleaners = Cleaners().ToList();
+            for (var i = 0; i < cleaners.Count; i++)
             {
-                ScanTime = DateTime.Now,
-                Results = new List<CleanupResult>()
-            };
-
-            var cleaners = new (string, Func<Task<CleanupResult>>)[]
-            {
-                ("Disk Cleanup", () => Task.FromResult(_diskCleaner.Scan())),
-                ("Temp Files", () => Task.FromResult(_tempCleaner.Scan())),
-                ("Browser Cache", () => Task.FromResult(_browserCleaner.Scan())),
-                ("Recycle Bin", () => Task.FromResult(_recycleBinCleaner.Scan())),
-                ("Registry", () => Task.FromResult(_registryCleaner.Scan()))
-            };
-
-            int completed = 0;
-            foreach (var (name, scanAction) in cleaners)
-            {
-                OnProgressUpdated(new CleanupProgress
+                var (category, scan, _) = cleaners[i];
+                OnProgressUpdated(new CleanupProgress { Category = category, Progress = i * 100 / cleaners.Count, Status = "Looking…" });
+                try
                 {
-                    Category = name,
-                    Progress = (completed * 100) / cleaners.Length,
-                    Status = "Scanning..."
-                });
-
-                var result = await scanAction();
-                report.Results.Add(result);
-                completed++;
-
-                OnProgressUpdated(new CleanupProgress
+                    report.Results.Add(await Task.Run(scan));
+                }
+                catch (Exception ex)
                 {
-                    Category = name,
-                    Progress = (completed * 100) / cleaners.Length,
-                    Status = "Completed"
-                });
+                    Debug.WriteLine($"Cleanup scan {category} failed: {ex.Message}");
+                    report.Results.Add(new CleanupResult { Category = category });
+                }
             }
 
             report.TotalSize = report.Results.Sum(r => r.TotalSize);
             report.ItemCount = report.Results.Sum(r => r.Items.Count);
-
             return report;
         }
 
-        public async Task ExecuteCleanupAsync(CleanupReport report, bool dryRun)
+        /// <summary>Deletes what the scan found and says what really happened. A preview deletes nothing.</summary>
+        public async Task<CleanupOutcome> ExecuteCleanupAsync(CleanupReport report, bool dryRun)
         {
-            int completed = 0;
-            int total = report.Results.Count;
-
-            foreach (var result in report.Results)
+            if (dryRun)
             {
-                OnProgressUpdated(new CleanupProgress
-                {
-                    Category = result.Category,
-                    Progress = (completed * 100) / total,
-                    Status = dryRun ? "Dry Run" : "Cleaning..."
-                });
-
-                await Task.Run(() =>
-                {
-                    switch (result.Category)
-                    {
-                        case "Disk Cleanup":
-                            _diskCleaner.Execute(result, dryRun);
-                            break;
-                        case "Temporary Files":
-                            _tempCleaner.Execute(result, dryRun);
-                            break;
-                        case "Browser Cache":
-                            _browserCleaner.Execute(result, dryRun);
-                            break;
-                        case "Recycle Bin":
-                            _recycleBinCleaner.Execute(result, dryRun);
-                            break;
-                        case "Registry Cleanup":
-                            _registryCleaner.Execute(result, dryRun);
-                            break;
-                    }
-                });
-
-                completed++;
+                return new CleanupOutcome { FreedBytes = report.TotalSize, Removed = report.ItemCount, Preview = true };
             }
 
-            OnCleanupCompleted(new CleanupResult
+            var outcome = new CleanupOutcome();
+            var executors = Cleaners().ToDictionary(c => c.Category, c => c.Execute);
+            var done = 0;
+            foreach (var result in report.Results)
             {
-                Category = "Complete",
-                TotalSize = report.TotalSize,
-                Items = report.Results.SelectMany(r => r.Items).ToList()
-            });
+                OnProgressUpdated(new CleanupProgress { Category = result.Category, Progress = done * 100 / Math.Max(1, report.Results.Count), Status = "Cleaning…" });
+                if (executors.TryGetValue(result.Category, out var execute) && result.Items.Count > 0)
+                {
+                    outcome.Add(await Task.Run(() => execute(result)));
+                }
+                done++;
+            }
+            return outcome;
         }
 
         protected virtual void OnProgressUpdated(CleanupProgress progress)
         {
             ProgressUpdated?.Invoke(this, progress);
-        }
-
-        protected virtual void OnCleanupCompleted(CleanupResult result)
-        {
-            CleanupCompleted?.Invoke(this, result);
         }
     }
 
@@ -166,5 +116,74 @@ namespace WindowsGuardianWatchdog.Core.Cleanup
         public int Progress { get; set; }
         public string Status { get; set; } = string.Empty;
     }
-}
 
+    /// <summary>What a cleanup actually did, counted file by file.</summary>
+    public sealed class CleanupOutcome
+    {
+        public long FreedBytes { get; set; }
+        public int Removed { get; set; }
+        /// <summary>Files that were in use or protected and were left where they are.</summary>
+        public int Skipped { get; set; }
+        public bool Preview { get; init; }
+
+        public void Add(CleanupOutcome other)
+        {
+            FreedBytes += other.FreedBytes;
+            Removed += other.Removed;
+            Skipped += other.Skipped;
+        }
+
+        /// <summary>Deletes one file and counts it either way.</summary>
+        public void DeleteFile(string path)
+        {
+            try
+            {
+                var info = new FileInfo(path);
+                if (!info.Exists) return;
+                var size = info.Length;
+                if (info.IsReadOnly) info.IsReadOnly = false;
+                info.Delete();
+                FreedBytes += size;
+                Removed++;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Skipped++;
+            }
+        }
+
+        /// <summary>Deletes everything inside a folder that isn't in use, keeping the folder itself.</summary>
+        public void DeleteContents(string directory, DateTime? olderThan = null)
+        {
+            if (!Directory.Exists(directory)) return;
+            IEnumerable<string> files;
+            try { files = Directory.EnumerateFiles(directory, "*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint }).ToList(); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Skipped++; return; }
+
+            foreach (var file in files)
+            {
+                if (olderThan is DateTime cutoff)
+                {
+                    try { if (File.GetLastWriteTime(file) >= cutoff) continue; } catch { continue; }
+                }
+                DeleteFile(file);
+            }
+
+            // Remove folders left empty, deepest first. A folder something still uses stays.
+            try
+            {
+                foreach (var folder in Directory.EnumerateDirectories(directory, "*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint })
+                             .OrderByDescending(f => f.Length).ToList())
+                {
+                    try
+                    {
+                        if (olderThan is DateTime cutoff && Directory.GetCreationTime(folder) >= cutoff) continue;
+                        if (!Directory.EnumerateFileSystemEntries(folder).Any()) Directory.Delete(folder);
+                    }
+                    catch { /* In use. */ }
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        }
+    }
+}

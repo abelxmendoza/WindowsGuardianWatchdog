@@ -1,99 +1,80 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
 namespace WindowsGuardianWatchdog.Core.Cleanup
 {
+    /// <summary>
+    /// Temporary files older than a week, in your Temp folder and Windows' own. Anything newer may belong to a setup
+    /// or an app that is running, so it is left alone.
+    /// </summary>
     public class TempFileCleaner
     {
-        public CleanupResult Scan()
+        public const string CategoryName = "Temporary files";
+        public static readonly TimeSpan MinimumAge = TimeSpan.FromDays(7);
+
+        public static IReadOnlyList<string> Locations()
         {
-            var result = new CleanupResult
-            {
-                Category = "Temporary Files",
-                Items = new List<CleanupItem>()
-            };
-
-            // Common temp locations
-            var tempLocations = new[]
-            {
-                Path.GetTempPath(),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Temp"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Temp"),
-                @"C:\Windows\Temp"
-            };
-
-            foreach (var location in tempLocations)
-            {
-                if (Directory.Exists(location))
+            var windowsTemp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp");
+            return new[]
                 {
-                    ScanTempDirectory(location, result);
+                    Path.GetTempPath(),
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Temp"),
+                    windowsTemp
                 }
+                .Where(Directory.Exists)
+                .Select(p => Path.TrimEndingDirectorySeparator(Path.GetFullPath(p)))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        public CleanupResult Scan() => Scan(Locations(), DateTime.Now - MinimumAge);
+
+        public CleanupResult Scan(IEnumerable<string> locations, DateTime cutoff)
+        {
+            var result = new CleanupResult { Category = CategoryName };
+            foreach (var location in locations)
+            {
+                long size = 0;
+                var count = 0;
+                try
+                {
+                    foreach (var file in Directory.EnumerateFiles(location, "*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint }))
+                    {
+                        try
+                        {
+                            var info = new FileInfo(file);
+                            if (info.LastWriteTime >= cutoff) continue;
+                            size += info.Length;
+                            count++;
+                        }
+                        catch { /* Gone or locked. */ }
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    continue;
+                }
+
+                if (count == 0) continue;
+                result.Items.Add(new CleanupItem
+                {
+                    Path = location,
+                    Category = CategoryName,
+                    Size = size,
+                    LastModified = cutoff,
+                    Type = CleanupItemType.Directory,
+                    Description = $"{count} files older than {MinimumAge.Days} days"
+                });
             }
 
-            // Old temp files (older than 7 days)
-            var cutoffDate = DateTime.Now.AddDays(-7);
-            result.Items = result.Items.Where(i => i.LastModified < cutoffDate).ToList();
             result.TotalSize = result.Items.Sum(i => i.Size);
-
             return result;
         }
 
-        private void ScanTempDirectory(string path, CleanupResult result)
-        {
-            try
-            {
-                var files = Directory.GetFiles(path, "*", SearchOption.TopDirectoryOnly);
-                
-                foreach (var file in files)
-                {
-                    try
-                    {
-                        var fileInfo = new FileInfo(file);
-                        if (fileInfo.Exists)
-                        {
-                            result.Items.Add(new CleanupItem
-                            {
-                                Path = file,
-                                Category = "Temp Files",
-                                Size = fileInfo.Length,
-                                LastModified = fileInfo.LastWriteTime,
-                                Type = CleanupItemType.File
-                            });
-                        }
-                    }
-                    catch
-                    {
-                        // Skip inaccessible files
-                    }
-                }
-            }
-            catch
-            {
-                // Handle errors
-            }
-        }
+        public CleanupOutcome Execute(CleanupResult result) => Execute(result, DateTime.Now - MinimumAge);
 
-        public void Execute(CleanupResult result, bool dryRun)
+        public CleanupOutcome Execute(CleanupResult result, DateTime cutoff)
         {
-            if (dryRun) return;
-
-            foreach (var item in result.Items)
-            {
-                try
-                {
-                    if (File.Exists(item.Path))
-                    {
-                        File.Delete(item.Path);
-                    }
-                }
-                catch
-                {
-                    // Continue on errors
-                }
-            }
+            var outcome = new CleanupOutcome();
+            foreach (var item in result.Items) outcome.DeleteContents(item.Path, cutoff);
+            return outcome;
         }
     }
 }
-

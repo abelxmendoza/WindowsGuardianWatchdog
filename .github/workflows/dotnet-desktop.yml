@@ -22,6 +22,9 @@ jobs:
         run: dotnet restore WindowsGuardianWatchdog.csproj -p:Platform=x64
       - name: Build release
         run: dotnet build WindowsGuardianWatchdog.csproj -c Release -p:Platform=x64 --no-restore
+      - name: Test
+        # Device tests read this PC's Defender, drivers and the network; they run on a real PC, not the CI runner.
+        run: dotnet test tests/WindowsGuardianWatchdog.Tests/WindowsGuardianWatchdog.Tests.csproj -c Release -p:Platform=x64 --filter "Category!=Device" --logger "console;verbosity=normal"
       - name: Upload release build
         uses: actions/upload-artifact@v4
         with:
