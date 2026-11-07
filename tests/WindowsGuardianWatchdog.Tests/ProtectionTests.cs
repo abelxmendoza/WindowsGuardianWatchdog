@@ -152,7 +152,7 @@ namespace WindowsGuardianWatchdog.Tests
         public void Change_watch_reads_every_group_on_this_pc()
         {
             var items = ChangeWatch.Collect(out var unreadable);
-            Assert.Empty(unreadable);
+            Assert.True(unreadable.Count == 0, "Could not read: " + string.Join("; ", unreadable.Select(g => $"{g}: {(ChangeWatch.LastErrors.TryGetValue(g, out var e) ? e : "?")}")));
             foreach (var group in new[] { "firewall", "defender", "uac", "admins", "accounts", "hosts", "accessibility" })
                 Assert.Contains(items, i => i.Group == group);
             Assert.DoesNotContain(items, i => i.Group == "accessibility" && i.Value == "swapped");
