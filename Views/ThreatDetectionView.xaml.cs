@@ -126,6 +126,8 @@ namespace WindowsGuardianWatchdog.Views
             {
                 var result = await action();
                 DefenderStatusText.Text = result.Message;
+                // Defender records a detection a few seconds after the scan returns.
+                if (result.Success) await Task.Delay(TimeSpan.FromSeconds(5));
                 EventTimeline.Record(NoticeKind.Information, result.Success ? NoticeSeverity.Info : NoticeSeverity.Warning,
                     "Virus scan", $"{what}: {(result.Success ? "done" : "did not work")}", result.Message);
                 await RefreshDefenderAsync();

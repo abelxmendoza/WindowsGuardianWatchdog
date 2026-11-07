@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using WindowsGuardianWatchdog.Core.Scripting;
 
 namespace WindowsGuardianWatchdog.Core.Defender
@@ -206,7 +207,8 @@ namespace WindowsGuardianWatchdog.Core.Defender
                     Name = Text(item, "Name"),
                     SeverityId = Int(item, "Severity"),
                     Detected = Date(item, "Detected"),
-                    Resources = Text(item, "Resources"),
+                    // Defender writes "file:_C:\x.exe"; people only need the path.
+                    Resources = Regex.Replace(Text(item, "Resources"), @"\b(file|process|regkey|service|containerfile):_", string.Empty),
                     StatusId = Int(item, "Status")
                 })
                 .ToList();

@@ -64,6 +64,18 @@ namespace WindowsGuardianWatchdog.Tests
         }
 
         [Fact]
+        public void A_real_eicar_detection_from_a_windows_11_pc()
+        {
+            // Captured on a Windows 11 PC after writing the EICAR test file: Defender quarantined it.
+            const string json = """[{"Name":"Virus:DOS/EICAR_Test_File","Severity":5,"Detected":"2026-11-07T08:25:44.1760000Z","Resources":"file:_C:\\Users\\someone\\AppData\\Local\\Temp\\wgw-eicar-test.txt","Status":3}]""";
+            var threat = Assert.Single(DefenderControl.ParseThreats(json));
+            Assert.Equal("Virus:DOS/EICAR_Test_File", threat.Name);
+            Assert.Equal(@"C:\Users\someone\AppData\Local\Temp\wgw-eicar-test.txt", threat.Resources);
+            Assert.Equal("Quarantined by Defender", threat.Status);
+            Assert.False(threat.NeedsAction);
+        }
+
+        [Fact]
         public void A_single_threat_object_is_a_list_of_one()
         {
             var threats = DefenderControl.ParseThreats("""{"Name":"X","Severity":1,"Status":2}""");
