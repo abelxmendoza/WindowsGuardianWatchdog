@@ -17,7 +17,6 @@ namespace WindowsGuardianWatchdog.Views
     {
         private readonly SecurityMonitor _securityMonitor = new();
         private readonly FileIntegrityMonitor _fileMonitor = new();
-        private readonly BlueTeamDetector _threatDetector = new();
         private readonly DefenderControl _defender = new();
         private readonly SystemHealthMonitor _healthMonitor = new();
         private readonly ObservableCollection<ActivityItem> _activities = new();
@@ -29,7 +28,6 @@ namespace WindowsGuardianWatchdog.Views
             ActivityListView.ItemsSource = _activities;
             _securityMonitor.AlertRaised += (_, alert) => DispatcherQueue.TryEnqueue(() => AddActivity($"[{alert.Severity}] {alert.Message}", "ALERT"));
             _fileMonitor.IntegrityViolation += (_, alert) => DispatcherQueue.TryEnqueue(() => AddActivity(alert.Message, "INTEGRITY"));
-            _threatDetector.ThreatDetected += (_, threat) => DispatcherQueue.TryEnqueue(() => AddActivity($"[{threat.Severity}] {threat.Description}", "THREAT"));
             Loaded += async (_, _) => await RefreshStatusAsync();
             MLServiceClient.Initialize(new MLSecurityEngine());
             AddActivity("Ready. Start with step 1, Update your apps.", "HOME");
@@ -48,16 +46,28 @@ namespace WindowsGuardianWatchdog.Views
                 await Task.WhenAll(defenderTask, healthTask);
                 var defender = defenderTask.Result;
                 var health = healthTask.Result;
-                var controls = new[] { defender.AntivirusEnabled, defender.RealTimeProtectionEnabled, defender.CloudProtectionEnabled, defender.BehaviorMonitoringEnabled, defender.PUAProtectionEnabled };
-                var score = controls.Count(enabled => enabled) * 18 + (health.Status == SystemHealthMonitor.HealthStatus.Healthy ? 10 : 0);
-
-                DefenderStatusText.Text = defender.IsHealthy ? "On" : "Needs a look";
                 SystemHealthText.Text = health.Status == SystemHealthMonitor.HealthStatus.Healthy ? "Looks good" : "Needs a look";
                 MonitorStatusText.Text = _securityMonitor.IsMonitoring ? "Watching" : "Not watching";
-                SecurityScoreText.Text = $"{score}/100";
-                SecurityStatusText.Text = score >= 85 ? "This PC looks protected" : score >= 60 ? "A few things are worth checking" : "Start with the list below";
-                SecuritySummaryText.Text = $"Virus protection is {(defender.AntivirusEnabled ? "on" : "off")}. Watching new files is {(defender.RealTimeProtectionEnabled ? "on" : "off")}. Checked at {DateTime.Now:t}.";
-                PostureIcon.Foreground = BrushFor(score >= 85 ? "#42D392" : score >= 60 ? "#F4B942" : "#FF5D73");
+                if (!defender.Available)
+                {
+                    // Unknown is not the same as off: don't score the PC on an answer Windows never gave.
+                    DefenderStatusText.Text = "Unknown";
+                    SecurityScoreText.Text = "–";
+                    SecurityStatusText.Text = "Could not read Microsoft Defender";
+                    SecuritySummaryText.Text = $"Windows did not share Defender's status ({defender.Problem}). If you use another antivirus, check it instead.";
+                    PostureIcon.Foreground = BrushFor("#F4B942");
+                }
+                else
+                {
+                    var controls = new[] { defender.AntivirusEnabled, defender.RealTimeProtectionEnabled, defender.CloudProtectionEnabled, defender.BehaviorMonitoringEnabled, defender.PUAProtectionEnabled };
+                    var score = controls.Count(enabled => enabled) * 18 + (health.Status == SystemHealthMonitor.HealthStatus.Healthy ? 10 : 0);
+                    DefenderStatusText.Text = defender.IsHealthy ? "On" : "Needs a look";
+                    SecurityScoreText.Text = $"{score}/100";
+                    SecurityStatusText.Text = score >= 85 ? "This PC looks protected" : score >= 60 ? "A few things are worth checking" : "Start with the list below";
+                    var definitions = defender.SignaturesOutOfDate ? $" Virus definitions are {defender.SignatureAgeDays} days old." : string.Empty;
+                    SecuritySummaryText.Text = $"Virus protection is {(defender.AntivirusEnabled ? "on" : "off")}. Watching new files is {(defender.RealTimeProtectionEnabled ? "on" : "off")}.{definitions} Checked at {DateTime.Now:t}.";
+                    PostureIcon.Foreground = BrushFor(score >= 85 ? "#42D392" : score >= 60 ? "#F4B942" : "#FF5D73");
+                }
                 OperationStatusText.Text = "Status refreshed";
             }
             catch (Exception ex)
@@ -89,10 +99,15 @@ namespace WindowsGuardianWatchdog.Views
             AddActivity($"Protection checkup finished. Score {report.Score} out of 100.", "CHECKUP");
         });
 
-        private async void ThreatHuntButton_Click(object sender, RoutedEventArgs e) => await RunOperationAsync("Looking for known risks…", async () =>
+        private async void ThreatHuntButton_Click(object sender, RoutedEventArgs e) => await RunOperationAsync("Running a quick virus scan. This usually takes a few minutes…", async () =>
         {
-            var report = await _threatDetector.PerformThreatHuntAsync();
-            AddActivity(report.ThreatCount == 0 ? "No known risks stood out." : $"Found {report.ThreatCount} item(s) worth a look.", "RISKS");
+            var scan = await _defender.QuickScanAsync();
+            AddActivity(scan.Message, scan.Success ? "SCAN" : "ERROR");
+            if (!scan.Success) return;
+            var found = (await _defender.GetThreatsAsync()).Where(t => t.NeedsAction).ToList();
+            AddActivity(found.Count == 0
+                ? "Defender found nothing that needs you."
+                : $"Defender found {found.Count} threat(s): {string.Join(", ", found.Select(t => t.Name))}. Open \"Scan for viruses\" to remove them.", found.Count == 0 ? "SCAN" : "THREAT");
         });
 
         private async Task RunOperationAsync(string status, Func<Task> operation)

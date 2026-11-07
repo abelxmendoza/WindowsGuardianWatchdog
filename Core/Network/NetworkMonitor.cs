@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Management.Automation;
+using WindowsGuardianWatchdog.Core.Scripting;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 
@@ -21,70 +21,53 @@ namespace WindowsGuardianWatchdog.Core.Network
 
         public async Task<NetworkStatus> GetNetworkStatusAsync()
         {
-            return await Task.Run(() =>
-            {
-                var status = new NetworkStatus();
+            var status = new NetworkStatus();
 
+            // Out of process: the app can't host PowerShell itself (see DefenderControl).
+            const string script = """
+                $fw = @(Get-NetFirewallProfile -ErrorAction SilentlyContinue)
+                $np = (Get-MpPreference -ErrorAction SilentlyContinue).EnableNetworkProtection
+                "firewall=" + (($fw.Count -gt 0) -and (@($fw | Where-Object { -not $_.Enabled }).Count -eq 0))
+                "network=" + [int]$np
+                """;
+            var run = await ScriptRunner.RunPowerShellAsync(script, elevate: false, timeoutMs: 60000);
+            var (firewall, networkProtection) = ParseStatus(run.Output);
+            status.FirewallEnabled = firewall;
+            status.NetworkProtectionEnabled = networkProtection;
+
+            await Task.Run(() =>
+            {
                 try
                 {
-                    // Check firewall status
-                    using var ps = PowerShell.Create();
-                    ps.AddScript("(Get-NetFirewallProfile | Where-Object {$_.Enabled -eq $false}).Count -eq 0");
-                    var firewallResult = ps.Invoke();
-                    status.FirewallEnabled = firewallResult != null && 
-                                            firewallResult.Count > 0 && 
-                                            firewallResult[0].ToString() == "True";
-
-                    // Check network protection (Defender)
-                    ps.Commands.Clear();
-                    ps.AddScript("(Get-MpPreference).EnableNetworkProtection");
-                    var networkProtectionResult = ps.Invoke();
-                    if (networkProtectionResult != null && networkProtectionResult.Count > 0)
-                    {
-                        var value = networkProtectionResult[0].ToString();
-                        status.NetworkProtectionEnabled = value == "1" || value == "Enabled";
-                    }
-
-                    // Get active network interfaces
-                    var interfaces = NetworkInterface.GetAllNetworkInterfaces()
+                    status.ActiveInterfaces = NetworkInterface.GetAllNetworkInterfaces()
                         .Where(ni => ni.OperationalStatus == OperationalStatus.Up &&
                                     ni.NetworkInterfaceType != NetworkInterfaceType.Loopback)
                         .ToList();
-                    status.ActiveInterfaces = interfaces;
-
-                    // Get active TCP connections
-                    var tcpConnections = IPGlobalProperties.GetIPGlobalProperties()
-                        .GetActiveTcpConnections();
-                    status.ActiveConnections = tcpConnections.Length;
-
-                    status.IsSecure = status.FirewallEnabled && status.NetworkProtectionEnabled;
+                    status.ActiveConnections = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpConnections().Length;
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine($"Error getting network status: {ex.Message}");
                 }
-
-                return status;
             });
+
+            status.IsSecure = status.FirewallEnabled && status.NetworkProtectionEnabled;
+            return status;
         }
 
-        public async Task<bool> EnableNetworkProtectionAsync(bool enabled)
+        /// <summary>Reads "firewall=True" and "network=1" lines. Network protection 1 is block; 2 is audit only.</summary>
+        public static (bool Firewall, bool NetworkProtection) ParseStatus(string output)
         {
-            return await Task.Run(() =>
+            bool firewall = false, network = false;
+            foreach (var raw in output.Split('\n'))
             {
-                try
-                {
-                    using var ps = PowerShell.Create();
-                    var value = enabled ? "Enabled" : "Disabled";
-                    ps.AddScript($"Set-MpPreference -EnableNetworkProtection {value}");
-                    ps.Invoke();
-                    return true;
-                }
-                catch
-                {
-                    return false;
-                }
-            });
+                var line = raw.Trim();
+                if (line.StartsWith("firewall=", StringComparison.OrdinalIgnoreCase))
+                    firewall = line["firewall=".Length..].Equals("True", StringComparison.OrdinalIgnoreCase);
+                else if (line.StartsWith("network=", StringComparison.OrdinalIgnoreCase))
+                    network = line["network=".Length..] == "1";
+            }
+            return (firewall, network);
         }
 
         public async Task<List<string>> GetActiveConnectionsAsync()

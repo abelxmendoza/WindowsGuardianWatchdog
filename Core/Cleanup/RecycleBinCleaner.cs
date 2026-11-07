@@ -1,117 +1,71 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace WindowsGuardianWatchdog.Core.Cleanup
 {
+    /// <summary>
+    /// The Recycle Bin, through the same Windows calls Explorer uses. The old version counted every account's bin
+    /// (the app runs as administrator) and "emptied" it with a hidden PowerShell that could stop on a confirmation
+    /// nobody saw.
+    /// </summary>
     public class RecycleBinCleaner
     {
+        public const string CategoryName = "Recycle Bin";
+
+        [StructLayout(LayoutKind.Sequential)] // 64-bit layout; the app is x64 only.
+        private struct SHQUERYRBINFO
+        {
+            public int cbSize;
+            public long i64Size;
+            public long i64NumItems;
+        }
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        private static extern int SHQueryRecycleBin(string? pszRootPath, ref SHQUERYRBINFO pSHQueryRBInfo);
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        private static extern int SHEmptyRecycleBin(IntPtr hwnd, string? pszRootPath, uint dwFlags);
+
+        private const uint SHERB_NOCONFIRMATION = 0x1, SHERB_NOPROGRESSUI = 0x2, SHERB_NOSOUND = 0x4;
+
+        public static (long Bytes, long Items) Query()
+        {
+            var info = new SHQUERYRBINFO { cbSize = Marshal.SizeOf<SHQUERYRBINFO>() };
+            var hr = SHQueryRecycleBin(null, ref info);
+            return hr == 0 ? (info.i64Size, info.i64NumItems) : (0, 0);
+        }
+
         public CleanupResult Scan()
         {
-            var result = new CleanupResult
+            var result = new CleanupResult { Category = CategoryName };
+            var (bytes, items) = Query();
+            if (items > 0)
             {
-                Category = "Recycle Bin",
-                Items = new List<CleanupItem>()
-            };
-
-            try
-            {
-                var drives = DriveInfo.GetDrives();
-                
-                foreach (var drive in drives)
+                result.Items.Add(new CleanupItem
                 {
-                    if (drive.IsReady && drive.DriveType == DriveType.Fixed)
-                    {
-                        var recycleBin = Path.Combine(drive.RootDirectory.FullName, "$Recycle.Bin");
-                        if (Directory.Exists(recycleBin))
-                        {
-                            ScanRecycleBin(recycleBin, result);
-                        }
-                    }
-                }
+                    Path = "Recycle Bin",
+                    Category = CategoryName,
+                    Size = bytes,
+                    LastModified = DateTime.Now,
+                    Type = CleanupItemType.Directory,
+                    Description = $"{items} deleted items"
+                });
             }
-            catch
-            {
-                // Handle errors
-            }
-
-            result.TotalSize = result.Items.Sum(i => i.Size);
+            result.TotalSize = bytes;
             return result;
         }
 
-        private void ScanRecycleBin(string path, CleanupResult result)
+        public CleanupOutcome Execute(CleanupResult result)
         {
-            try
+            var (bytesBefore, itemsBefore) = Query();
+            var hr = SHEmptyRecycleBin(IntPtr.Zero, null, SHERB_NOCONFIRMATION | SHERB_NOPROGRESSUI | SHERB_NOSOUND);
+            var (bytesAfter, itemsAfter) = Query();
+            // S_OK, or E_UNEXPECTED when it was already empty.
+            return new CleanupOutcome
             {
-                var files = Directory.GetFiles(path, "*", SearchOption.AllDirectories);
-                
-                foreach (var file in files)
-                {
-                    try
-                    {
-                        var fileInfo = new FileInfo(file);
-                        if (fileInfo.Exists)
-                        {
-                            result.Items.Add(new CleanupItem
-                            {
-                                Path = file,
-                                Category = "Recycle Bin",
-                                Size = fileInfo.Length,
-                                LastModified = fileInfo.LastWriteTime,
-                                Type = CleanupItemType.File
-                            });
-                        }
-                    }
-                    catch
-                    {
-                        // Skip inaccessible files
-                    }
-                }
-            }
-            catch
-            {
-                // Handle errors
-            }
-        }
-
-        public void Execute(CleanupResult result, bool dryRun)
-        {
-            if (dryRun) return;
-
-            try
-            {
-                // Use SHEmptyRecycleBin Windows API via PowerShell
-                var startInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "powershell",
-                    Arguments = "-Command \"$shell = New-Object -ComObject Shell.Application; $shell.Namespace(0xA).Items() | ForEach-Object { $_.InvokeVerb('delete') }\"",
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                using var process = System.Diagnostics.Process.Start(startInfo);
-                process?.WaitForExit();
-            }
-            catch
-            {
-                // Fallback: try to delete files directly
-                foreach (var item in result.Items)
-                {
-                    try
-                    {
-                        if (File.Exists(item.Path))
-                        {
-                            File.Delete(item.Path);
-                        }
-                    }
-                    catch
-                    {
-                        // Continue on errors
-                    }
-                }
-            }
+                FreedBytes = Math.Max(0, bytesBefore - bytesAfter),
+                Removed = (int)Math.Max(0, itemsBefore - itemsAfter),
+                Skipped = hr == 0 || itemsAfter == 0 ? 0 : (int)itemsAfter
+            };
         }
     }
 }
-

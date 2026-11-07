@@ -127,7 +127,7 @@
           <StackPanel Orientation="Horizontal" Spacing="10">
             <Button x:Name="StartMonitoringButton" Content="Start watching this PC" Click="StartMonitoringButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
             <Button Content="Run a protection checkup" Click="RunAuditButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
-            <Button Content="Look for known risks" Click="ThreatHuntButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
+            <Button Content="Run a quick virus scan" Click="ThreatHuntButton_Click" Style="{StaticResource SecondaryButtonStyle}"/>
           </StackPanel>
           <TextBlock x:Name="OperationStatusText" Text="Ready" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap"/>
           <ProgressBar x:Name="OperationProgress" IsIndeterminate="True" Visibility="Collapsed"/>

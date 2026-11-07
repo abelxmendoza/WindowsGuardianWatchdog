@@ -6,11 +6,13 @@ namespace WindowsGuardianWatchdog.Core.Cleanup
 {
     public class BrowserCleaner
     {
+        public const string CategoryName = "Browser cache and history";
+
         public CleanupResult Scan()
         {
             var result = new CleanupResult
             {
-                Category = "Browser Cache",
+                Category = CategoryName,
                 Items = new List<CleanupItem>()
             };
 
@@ -38,10 +40,9 @@ namespace WindowsGuardianWatchdog.Core.Cleanup
             return result;
         }
 
-        public void Execute(CleanupResult result, bool dryRun)
+        public CleanupOutcome Execute(CleanupResult result)
         {
-            if (dryRun) return;
-
+            var outcome = new CleanupOutcome();
             foreach (var item in result.Items)
             {
                 try
@@ -49,25 +50,30 @@ namespace WindowsGuardianWatchdog.Core.Cleanup
                     if (item.Type == CleanupItemType.Registry)
                     {
                         ClearWindowsSearchHistory();
+                        outcome.Removed++;
                     }
                     else if (item.Category.Contains("Firefox history", StringComparison.OrdinalIgnoreCase))
                     {
                         ClearFirefoxHistory(item.Path);
+                        outcome.Removed++;
                     }
                     else if (Directory.Exists(item.Path))
                     {
-                        DeleteChildren(item.Path);
+                        outcome.DeleteContents(item.Path);
                     }
-                    else if (File.Exists(item.Path))
+                    else
                     {
-                        File.Delete(item.Path);
+                        outcome.DeleteFile(item.Path);
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
                     // A browser that is still open keeps its history database locked.
+                    Debug.WriteLine($"Could not clear {item.Path}: {ex.Message}");
+                    outcome.Skipped++;
                 }
             }
+            return outcome;
         }
 
         private static void ScanChromium(string name, string root, CleanupResult result)
@@ -181,14 +187,6 @@ namespace WindowsGuardianWatchdog.Core.Cleanup
                 LastModified = info.LastWriteTime,
                 Type = CleanupItemType.File
             });
-        }
-
-        private static void DeleteChildren(string directory)
-        {
-            foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
-            {
-                try { File.Delete(file); } catch { /* Locked cache files are left in place. */ }
-            }
         }
 
         private static void ClearWindowsSearchHistory()

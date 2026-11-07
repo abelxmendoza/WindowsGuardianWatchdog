@@ -1,351 +1,251 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Management;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+using System.Text;
+using Microsoft.Win32;
+using WindowsGuardianWatchdog.Core.Defender;
+using WindowsGuardianWatchdog.Core.Scripting;
 
 namespace WindowsGuardianWatchdog.Core
 {
+    /// <summary>
+    /// "Look through this PC": a short list of things that are actually worth a person's attention.
+    ///
+    ///   Defender      anything Defender found and has not dealt with, real-time protection off, old virus definitions
+    ///   firewall      a network profile with the firewall off
+    ///   programs      a running program that is not signed by its maker AND runs from a folder any program can
+    ///                 write to (Temp, Downloads, AppData…). Signed programs and programs under Program Files or
+    ///                 Windows are not reported: being unsigned alone is common and not a sign of malware.
+    ///   persistence   a "starts with Windows" entry that points into Temp or Downloads, and debugger hijacks
+    ///
+    /// Every finding is raised through <see cref="ThreatDetected"/>, so the list on screen matches the count.
+    /// </summary>
     public class BlueTeamDetector
     {
-        private readonly List<ThreatIndicator> _threatIndicators;
-        private readonly List<ThreatIntelligence> _threatIntelligence;
+        private readonly DefenderControl _defender = new();
 
         public event EventHandler<ThreatDetection>? ThreatDetected;
 
-        public BlueTeamDetector()
-        {
-            _threatIndicators = new List<ThreatIndicator>();
-            _threatIntelligence = new List<ThreatIntelligence>();
-            InitializeThreatIndicators();
-        }
-
-        private void InitializeThreatIndicators()
-        {
-            // Common malware indicators
-            _threatIndicators.AddRange(new[]
-            {
-                new ThreatIndicator { Type = IndicatorType.ProcessName, Pattern = @"(?i)(malware|trojan|virus|backdoor|keylog)" },
-                new ThreatIndicator { Type = IndicatorType.FilePath, Pattern = @"(?i)(temp|appdata\\local\\temp)" },
-                new ThreatIndicator { Type = IndicatorType.Network, Pattern = @"(?i)(suspicious|malicious)" }
-            });
-        }
-
         public async Task<ThreatReport> PerformThreatHuntAsync()
         {
-            var report = new ThreatReport
-            {
-                ScanTime = DateTime.Now,
-                Threats = new List<ThreatDetection>()
-            };
+            var report = new ThreatReport { ScanTime = DateTime.Now };
 
-            // Check running processes
-            var processThreats = await DetectProcessThreatsAsync();
-            report.Threats.AddRange(processThreats);
+            report.Threats.AddRange(await DetectDefenderProblemsAsync());
+            report.Threats.AddRange(DetectFirewallProblems());
+            report.Threats.AddRange(await DetectUnsignedProgramsAsync());
+            report.Threats.AddRange(DetectPersistence());
 
-            // Check network connections
-            var networkThreats = await DetectNetworkThreatsAsync();
-            report.Threats.AddRange(networkThreats);
-
-            // Check system configuration
-            var configThreats = await DetectConfigurationThreatsAsync();
-            report.Threats.AddRange(configThreats);
-
-            // Check registry for persistence mechanisms
-            var registryThreats = await DetectRegistryThreatsAsync();
-            report.Threats.AddRange(registryThreats);
+            foreach (var threat in report.Threats) OnThreatDetected(threat);
 
             report.ThreatCount = report.Threats.Count;
-            report.Severity = report.Threats.Any(t => t.Severity == ThreatSeverity.Critical) 
-                ? ThreatSeverity.Critical 
-                : report.Threats.Any(t => t.Severity == ThreatSeverity.High) 
-                    ? ThreatSeverity.High 
-                    : ThreatSeverity.Low;
-
+            report.Severity = report.Threats.Count == 0 ? ThreatSeverity.Low : report.Threats.Max(t => t.Severity);
             return report;
         }
 
-        private async Task<List<ThreatDetection>> DetectProcessThreatsAsync()
+        private async Task<List<ThreatDetection>> DetectDefenderProblemsAsync()
         {
             var threats = new List<ThreatDetection>();
-
-            await Task.Run(() =>
+            var status = await _defender.GetStatusAsync();
+            if (!status.Available)
             {
-                try
-                {
-                    var processes = Process.GetProcesses();
-                    
-                    foreach (var process in processes)
-                    {
-                        try
-                        {
-                            var processName = process.ProcessName.ToLower();
-                            var processPath = process.MainModule?.FileName?.ToLower() ?? "";
+                threats.Add(Finding(ThreatType.Configuration, ThreatSeverity.Medium, "Could not read Microsoft Defender's status",
+                    status.Problem + " If another antivirus is installed, check it instead."));
+            }
+            else
+            {
+                if (!status.AntivirusEnabled || !status.RealTimeProtectionEnabled)
+                    threats.Add(Finding(ThreatType.Configuration, ThreatSeverity.Critical, "Microsoft Defender real-time protection is off",
+                        "New files are not being checked. Turn it on in Windows Security > Virus & threat protection, or from \"Turn on protection\"."));
+                if (status.SignaturesOutOfDate)
+                    threats.Add(Finding(ThreatType.Configuration, ThreatSeverity.Medium, $"Virus definitions are {status.SignatureAgeDays} days old",
+                        "Use \"Update virus definitions\" on this page."));
+            }
 
-                            // Check against threat indicators
-                            foreach (var indicator in _threatIndicators.Where(i => i.Type == IndicatorType.ProcessName))
-                            {
-                                if (Regex.IsMatch(processName, indicator.Pattern) || 
-                                    Regex.IsMatch(processPath, indicator.Pattern))
-                                {
-                                    threats.Add(new ThreatDetection
-                                    {
-                                        Type = ThreatType.Process,
-                                        Severity = ThreatSeverity.High,
-                                        Description = $"Suspicious process detected: {process.ProcessName}",
-                                        Details = $"PID: {process.Id}, Path: {processPath}",
-                                        Timestamp = DateTime.Now
-                                    });
-                                    
-                                    OnThreatDetected(threats.Last());
-                                }
-                            }
-
-                            // Check for processes with no digital signature
-                            if (!string.IsNullOrEmpty(processPath) && File.Exists(processPath))
-                            {
-                                if (!HasValidDigitalSignature(processPath))
-                                {
-                                    threats.Add(new ThreatDetection
-                                    {
-                                        Type = ThreatType.Process,
-                                        Severity = ThreatSeverity.Medium,
-                                        Description = $"Unsigned process: {process.ProcessName}",
-                                        Details = $"Path: {processPath}",
-                                        Timestamp = DateTime.Now
-                                    });
-                                }
-                            }
-                        }
-                        catch
-                        {
-                            // Skip processes we can't access
-                        }
-                    }
-                }
-                catch
+            try
+            {
+                foreach (var found in (await _defender.GetThreatsAsync()).Where(t => t.NeedsAction))
                 {
-                    // Handle errors
+                    threats.Add(Finding(ThreatType.File, ThreatSeverity.Critical, $"Defender found {found.Name}",
+                        $"{found.Status}. {found.Resources} (seen {found.WhenText}). Use \"Remove what Defender found\"."));
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Defender threat list unavailable: {ex.Message}");
+            }
 
             return threats;
         }
 
-        private async Task<List<ThreatDetection>> DetectNetworkThreatsAsync()
+        private static List<ThreatDetection> DetectFirewallProblems()
         {
             var threats = new List<ThreatDetection>();
-
-            await Task.Run(() =>
+            const string root = @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\";
+            foreach (var (profile, label) in new[] { ("DomainProfile", "work"), ("StandardProfile", "private"), ("PublicProfile", "public") })
             {
                 try
                 {
-                    using var searcher = new ManagementObjectSearcher(
-                        "SELECT * FROM Win32_NetworkConnection WHERE LocalName IS NOT NULL");
-                    
-                    var connections = searcher.Get();
-                    // Network threat detection logic
+                    using var key = Registry.LocalMachine.OpenSubKey(root + profile);
+                    if (key?.GetValue("EnableFirewall") is int enabled && enabled == 0)
+                        threats.Add(Finding(ThreatType.Configuration, ThreatSeverity.High, $"Windows Firewall is off for {label} networks",
+                            "Turn it back on in Windows Security > Firewall & network protection."));
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Handle errors
+                    Debug.WriteLine($"Firewall profile {profile} unreadable: {ex.Message}");
                 }
-            });
-
+            }
             return threats;
         }
 
-        private async Task<List<ThreatDetection>> DetectConfigurationThreatsAsync()
+        private static async Task<List<ThreatDetection>> DetectUnsignedProgramsAsync()
         {
-            var threats = new List<ThreatDetection>();
-
-            await Task.Run(() =>
+            var running = new Dictionary<string, (string Name, int Pid)>(StringComparer.OrdinalIgnoreCase);
+            foreach (var process in Process.GetProcesses())
             {
-                // Check Windows Defender status
                 try
                 {
-                    var defenderStatus = GetWindowsDefenderStatus();
-                    if (!defenderStatus.IsEnabled)
-                    {
-                        threats.Add(new ThreatDetection
-                        {
-                            Type = ThreatType.Configuration,
-                            Severity = ThreatSeverity.Critical,
-                            Description = "Windows Defender is disabled",
-                            Timestamp = DateTime.Now
-                        });
-                    }
+                    var path = process.MainModule?.FileName;
+                    if (!string.IsNullOrEmpty(path) && IsUserWritableLocation(path) && !running.ContainsKey(path))
+                        running[path] = (process.ProcessName, process.Id);
                 }
                 catch
                 {
+                    // Protected and already-exited processes can't be inspected; Defender covers those.
                 }
-
-                // Check firewall status
-                try
+                finally
                 {
-                    var firewallStatus = GetFirewallStatus();
-                    if (!firewallStatus.IsEnabled)
-                    {
-                        threats.Add(new ThreatDetection
-                        {
-                            Type = ThreatType.Configuration,
-                            Severity = ThreatSeverity.High,
-                            Description = "Windows Firewall is disabled",
-                            Timestamp = DateTime.Now
-                        });
-                    }
+                    process.Dispose();
                 }
-                catch
-                {
-                }
-            });
+            }
 
+            var threats = new List<ThreatDetection>();
+            if (running.Count == 0) return threats;
+
+            var signatures = await CheckSignaturesAsync(running.Keys.ToList());
+            foreach (var (path, (name, pid)) in running)
+            {
+                if (!signatures.TryGetValue(path, out var status) || status == "Valid") continue;
+                var tampered = status == "HashMismatch";
+                threats.Add(Finding(ThreatType.Process, tampered ? ThreatSeverity.High : ThreatSeverity.Medium,
+                    tampered ? $"{name} was changed after its maker signed it" : $"{name} is unsigned and runs from a download or temp folder",
+                    $"PID {pid}. {path}. If you don't recognize it, scan it with \"Scan a file or folder\" and quarantine it."));
+            }
             return threats;
         }
 
-        private async Task<List<ThreatDetection>> DetectRegistryThreatsAsync()
+        /// <summary>Authenticode status per file, from one PowerShell call for all of them.</summary>
+        private static async Task<Dictionary<string, string>> CheckSignaturesAsync(IReadOnlyList<string> paths)
+        {
+            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var script = new StringBuilder("$paths = @(\n");
+            script.Append(string.Join(",\n", paths.Select(p => "'" + p.Replace("'", "''") + "'")));
+            script.Append(")\nforeach ($p in $paths) { try { $s = Get-AuthenticodeSignature -LiteralPath $p -ErrorAction Stop; \"$($s.Status)|$p\" } catch { \"Unknown|$p\" } }");
+            var run = await ScriptRunner.RunPowerShellAsync(script.ToString(), elevate: false, timeoutMs: 180000);
+            foreach (var line in run.Output.Split('\n'))
+            {
+                var parts = line.Trim().Split('|', 2);
+                if (parts.Length == 2 && parts[0] != "Unknown") result[parts[1]] = parts[0];
+            }
+            return result;
+        }
+
+        private static List<ThreatDetection> DetectPersistence()
         {
             var threats = new List<ThreatDetection>();
-
-            await Task.Run(() =>
+            foreach (var (hive, path) in new[]
             {
-                // Check common persistence locations
-                var persistenceKeys = new[]
+                (Registry.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\Run"),
+                (Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run"),
+                (Registry.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run"),
+            })
+            {
+                try
                 {
-                    @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run",
-                    @"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run"
-                };
+                    using var key = hive.OpenSubKey(path);
+                    if (key == null) continue;
+                    foreach (var name in key.GetValueNames())
+                    {
+                        var command = key.GetValue(name)?.ToString() ?? string.Empty;
+                        if (IsTempOrDownloads(command))
+                            threats.Add(Finding(ThreatType.Registry, ThreatSeverity.High, $"\"{name}\" starts with Windows from a temp or download folder",
+                                $"{command}. Installers don't normally leave programs there. Check it in \"Startup programs\"."));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Run key {path} unreadable: {ex.Message}");
+                }
+            }
 
-                foreach (var key in persistenceKeys)
+            try
+            {
+                using var ifeo = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options");
+                foreach (var program in ifeo?.GetSubKeyNames() ?? Array.Empty<string>())
                 {
+                    string? debugger;
                     try
                     {
-                        using var regKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
-                            key.Replace("HKEY_CURRENT_USER\\", ""));
-                        
-                        if (regKey != null)
-                        {
-                            var values = regKey.GetValueNames();
-                            // Check for suspicious entries
-                        }
+                        using var key = ifeo!.OpenSubKey(program);
+                        debugger = key?.GetValue("Debugger")?.ToString();
                     }
-                    catch
+                    catch (System.Security.SecurityException)
                     {
+                        continue;
                     }
+                    if (string.IsNullOrWhiteSpace(debugger)) continue;
+                    threats.Add(Finding(ThreatType.Registry, ThreatSeverity.High, $"Starting {program} runs something else",
+                        $"Debugger is set to \"{debugger}\". Developer tools sometimes do this; otherwise it is a known way to hijack programs."));
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"IFEO unreadable: {ex.Message}");
+            }
 
             return threats;
         }
 
-        private bool HasValidDigitalSignature(string filePath)
+        /// <summary>Folders any program the user runs can write to, so malware can drop files there.</summary>
+        public static bool IsUserWritableLocation(string path)
         {
-            try
+            if (string.IsNullOrWhiteSpace(path)) return false;
+            var full = path.Trim('"');
+            string[] trusted =
             {
-                // Use PowerShell to check signature
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = "powershell",
-                    Arguments = $"-Command \"Get-AuthenticodeSignature '{filePath}' | Select-Object -ExpandProperty Status\"",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
+                Environment.GetFolderPath(Environment.SpecialFolder.Windows),
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+            };
+            if (trusted.Any(root => IsUnder(full, root))) return false;
 
-                using var process = Process.Start(startInfo);
-                if (process != null)
-                {
-                    var output = process.StandardOutput.ReadToEnd();
-                    process.WaitForExit();
-                    return output.Trim().Equals("Valid", StringComparison.OrdinalIgnoreCase);
-                }
-            }
-            catch
+            string[] writable =
             {
-            }
-
-            return false;
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                Environment.GetEnvironmentVariable("PUBLIC") ?? string.Empty,
+                Path.GetTempPath(),
+            };
+            return writable.Any(root => IsUnder(full, root)) || full.Contains(@"\$Recycle.Bin\", StringComparison.OrdinalIgnoreCase);
         }
 
-        private (bool IsEnabled, string Status) GetWindowsDefenderStatus()
+        public static bool IsTempOrDownloads(string command)
         {
-            try
-            {
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = "powershell",
-                    Arguments = "Get-MpComputerStatus | Select-Object -ExpandProperty AntivirusEnabled",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                using var process = Process.Start(startInfo);
-                if (process != null)
-                {
-                    var output = process.StandardOutput.ReadToEnd();
-                    process.WaitForExit();
-                    bool enabled = output.Trim().Equals("True", StringComparison.OrdinalIgnoreCase);
-                    return (enabled, enabled ? "Enabled" : "Disabled");
-                }
-            }
-            catch
-            {
-            }
-
-            return (false, "Unknown");
+            if (string.IsNullOrWhiteSpace(command)) return false;
+            return command.Contains(@"\Temp\", StringComparison.OrdinalIgnoreCase)
+                || command.Contains(@"\Downloads\", StringComparison.OrdinalIgnoreCase)
+                || command.Contains(@"\$Recycle.Bin\", StringComparison.OrdinalIgnoreCase)
+                || command.Contains("%TEMP%", StringComparison.OrdinalIgnoreCase);
         }
 
-        private (bool IsEnabled, string Status) GetFirewallStatus()
-        {
-            try
-            {
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = "netsh",
-                    Arguments = "advfirewall show allprofiles state",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
+        private static bool IsUnder(string path, string root) =>
+            !string.IsNullOrEmpty(root) &&
+            path.StartsWith(Path.TrimEndingDirectorySeparator(root) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
 
-                using var process = Process.Start(startInfo);
-                if (process != null)
-                {
-                    var output = process.StandardOutput.ReadToEnd();
-                    process.WaitForExit();
-                    bool enabled = output.Contains("ON", StringComparison.OrdinalIgnoreCase);
-                    return (enabled, enabled ? "Enabled" : "Disabled");
-                }
-            }
-            catch
-            {
-            }
-
-            return (false, "Unknown");
-        }
+        private static ThreatDetection Finding(ThreatType type, ThreatSeverity severity, string description, string details) =>
+            new() { Type = type, Severity = severity, Description = description, Details = details, Timestamp = DateTime.Now };
 
         protected virtual void OnThreatDetected(ThreatDetection threat)
         {
             ThreatDetected?.Invoke(this, threat);
         }
-    }
-
-    public class ThreatIndicator
-    {
-        public IndicatorType Type { get; set; }
-        public string Pattern { get; set; } = string.Empty;
-    }
-
-    public enum IndicatorType
-    {
-        ProcessName,
-        FilePath,
-        Network,
-        Registry
     }
 
     public class ThreatDetection
@@ -381,12 +281,4 @@ namespace WindowsGuardianWatchdog.Core
         public int ThreatCount { get; set; }
         public ThreatSeverity Severity { get; set; }
     }
-
-    public class ThreatIntelligence
-    {
-        public string Indicator { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty;
-        public ThreatSeverity Severity { get; set; }
-    }
 }
-

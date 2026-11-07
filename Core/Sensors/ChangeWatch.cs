@@ -169,6 +169,9 @@ namespace WindowsGuardianWatchdog.Core.Sensors
             _ => "This is rarely legitimate. If no Windows update or setup just ran, treat the PC as compromised: disconnect it and run a Defender offline scan."
         };
 
+        /// <summary>Why a group could not be read on the last look, for App health and the tests.</summary>
+        public static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> LastErrors = new();
+
         public static List<WatchItem> Collect(out HashSet<string> unreadable)
         {
             var items = new List<WatchItem>();
@@ -184,7 +187,8 @@ namespace WindowsGuardianWatchdog.Core.Sensors
                 catch (Exception ex)
                 {
                     failed.Add(group);
-                    Debug.WriteLine($"Change watch could not read {group}: {ex.Message}");
+                    Debug.WriteLine($"Change watch could not read {group}: {ex}");
+                    LastErrors[group] = ex.Message;
                 }
             }
 
@@ -323,8 +327,17 @@ namespace WindowsGuardianWatchdog.Core.Sensors
             if (root == null) return;
             foreach (var program in root.GetSubKeyNames())
             {
-                using var key = root.OpenSubKey(program);
-                var debugger = key?.GetValue("Debugger")?.ToString();
+                string? debugger;
+                try
+                {
+                    using var key = root.OpenSubKey(program);
+                    debugger = key?.GetValue("Debugger")?.ToString();
+                }
+                catch (System.Security.SecurityException)
+                {
+                    // Some entries are locked down even for reading; one of them must not blind the whole group.
+                    continue;
+                }
                 if (string.IsNullOrWhiteSpace(debugger)) continue;
                 items.Add(new WatchItem($"ifeo:{program}", "ifeo", $"Starting {program} runs \"{debugger}\" instead", Fingerprint(debugger)));
             }

@@ -1,118 +1,64 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
 namespace WindowsGuardianWatchdog.Core.Cleanup
 {
+    /// <summary>Crash dumps and error reports that were already sent (or never will be).</summary>
     public class DiskCleaner
     {
-        public CleanupResult Scan()
+        public const string CategoryName = "Crash reports";
+
+        public static IReadOnlyList<(string Path, string Label)> Locations()
         {
-            var result = new CleanupResult
+            var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var common = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            return new[]
             {
-                Category = "Disk Cleanup",
-                Items = new List<CleanupItem>()
+                (Path.Combine(local, "CrashDumps"), "App crash dumps"),
+                (Path.Combine(local, "Microsoft", "Windows", "WER", "ReportArchive"), "Your error reports"),
+                (Path.Combine(local, "Microsoft", "Windows", "WER", "ReportQueue"), "Your error reports"),
+                (Path.Combine(common, "Microsoft", "Windows", "WER", "ReportArchive"), "Windows error reports"),
+                (Path.Combine(common, "Microsoft", "Windows", "WER", "ReportQueue"), "Windows error reports"),
             };
+        }
 
-            // Windows Temp
-            ScanDirectory(Path.GetTempPath(), "Windows Temp", result);
-            
-            // User Temp
-            var userTemp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Temp");
-            if (Directory.Exists(userTemp))
-            {
-                ScanDirectory(userTemp, "User Temp", result);
-            }
+        public CleanupResult Scan() => Scan(Locations());
 
-            // Prefetch
-            var prefetch = @"C:\Windows\Prefetch";
-            if (Directory.Exists(prefetch))
+        public CleanupResult Scan(IEnumerable<(string Path, string Label)> locations)
+        {
+            var result = new CleanupResult { Category = CategoryName };
+            foreach (var (path, label) in locations)
             {
-                ScanDirectory(prefetch, "Prefetch", result);
-            }
+                if (!Directory.Exists(path)) continue;
+                long size = 0;
+                var count = 0;
+                try
+                {
+                    foreach (var file in Directory.EnumerateFiles(path, "*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true }))
+                    {
+                        try { size += new FileInfo(file).Length; count++; } catch { /* Gone. */ }
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { continue; }
 
-            // Windows Logs
-            var logs = @"C:\Windows\Logs";
-            if (Directory.Exists(logs))
-            {
-                ScanDirectory(logs, "Windows Logs", result);
-            }
-
-            // Crash dumps
-            var crashDumps = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CrashDumps");
-            if (Directory.Exists(crashDumps))
-            {
-                ScanDirectory(crashDumps, "Crash Dumps", result);
+                if (count == 0) continue;
+                result.Items.Add(new CleanupItem
+                {
+                    Path = path,
+                    Category = label,
+                    Size = size,
+                    LastModified = Directory.GetLastWriteTime(path),
+                    Type = CleanupItemType.Directory,
+                    Description = $"{count} files"
+                });
             }
 
             result.TotalSize = result.Items.Sum(i => i.Size);
             return result;
         }
 
-        private void ScanDirectory(string path, string category, CleanupResult result)
+        public CleanupOutcome Execute(CleanupResult result)
         {
-            try
-            {
-                if (!Directory.Exists(path)) return;
-
-                var files = Directory.GetFiles(path, "*", SearchOption.AllDirectories);
-                
-                foreach (var file in files)
-                {
-                    try
-                    {
-                        var fileInfo = new FileInfo(file);
-                        if (fileInfo.Exists)
-                        {
-                            result.Items.Add(new CleanupItem
-                            {
-                                Path = file,
-                                Category = category,
-                                Size = fileInfo.Length,
-                                LastModified = fileInfo.LastWriteTime,
-                                Type = CleanupItemType.File
-                            });
-                        }
-                    }
-                    catch
-                    {
-                        // Skip files we can't access
-                    }
-                }
-            }
-            catch
-            {
-                // Handle directory access errors
-            }
-        }
-
-        public void Execute(CleanupResult result, bool dryRun)
-        {
-            if (dryRun)
-            {
-                return; // Just scan, don't delete
-            }
-
-            foreach (var item in result.Items)
-            {
-                try
-                {
-                    if (item.Type == CleanupItemType.File && File.Exists(item.Path))
-                    {
-                        File.Delete(item.Path);
-                    }
-                    else if (item.Type == CleanupItemType.Directory && Directory.Exists(item.Path))
-                    {
-                        Directory.Delete(item.Path, true);
-                    }
-                }
-                catch
-                {
-                    // Log error but continue
-                }
-            }
+            var outcome = new CleanupOutcome();
+            foreach (var item in result.Items) outcome.DeleteContents(item.Path);
+            return outcome;
         }
     }
 }
-

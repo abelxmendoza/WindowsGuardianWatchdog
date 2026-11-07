@@ -64,6 +64,7 @@ namespace WindowsGuardianWatchdog
             var dashboard = AddItem("Home", "What to do next", "Dashboard", Symbol.Home);
             AddHeader("KEEP THIS PC HEALTHY");
             AddItem("Update apps", "Install newer versions", "AppUpdates", Symbol.Sync);
+            AddItem("Scan for viruses", "Defender scan and warning signs", "ThreatDetection", Symbol.Find);
             AddItem("Free up space", "Clear leftover files", "Cleanup", Symbol.Delete);
             AddItem("Fix hardware", "Devices that need help", "Drivers", Symbol.Download);
             AddItem("Turn on protection", "Windows safety switches", "Hardening", Symbol.Permissions);
@@ -75,7 +76,6 @@ namespace WindowsGuardianWatchdog
             AddItem("Who can connect", "Doors open to the network", "Exposure", Symbol.World);
             AddHeader("A CLOSER LOOK");
             AddItem("Protection details", "A fuller status picture", "SecurityOverview", Symbol.View);
-            AddItem("Check for risks", "Known public issues", "ThreatDetection", Symbol.Find);
             AddItem("Watch folders", "Notice if files change", "FileIntegrity", Symbol.Document);
             AddItem("Protection checkup", "Score the safety switches", "SecurityAudit", Symbol.AllApps);
             AddItem("Unusual activity", "Spot something out of the ordinary", "MLInsights", Symbol.OutlineStar);
